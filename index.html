@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a12;--surface:#12121e;--surface2:#1a1a2e;
+  --accent:#7c3aed;--accent2:#06b6d4;--accent3:#f59e0b;
+  --text:#e2e8f0;--text2:#94a3b8;--border:rgba(124,58,237,0.25);--glow:rgba(124,58,237,0.4);
+  --english:#ef4444;--japanese:#f97316;--math:#3b82f6;--science:#22c55e;--social:#a855f7;--none:#64748b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background 0.6s ease}
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.overlay.active{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:500px;width:92%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 0 60px rgba(124,58,237,0.2)}
+.modal-title{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--accent2);margin-bottom:20px;letter-spacing:2px}
+.close-btn{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text2);font-size:1.4rem;cursor:pointer;transition:color 0.2s}
+.close-btn:hover{color:var(--text)}
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* HOME */
+#home-screen{position:relative}
+.home-content{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;padding:24px 18px;gap:16px}
+.home-header{display:flex;align-items:center;justify-content:space-between}
+.app-title{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px}
+.level-badge{display:flex;flex-direction:column;align-items:flex-end;cursor:pointer;transition:transform 0.2s;user-select:none}
+.level-badge:hover{transform:scale(1.05)}
+.level-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;color:var(--text2);letter-spacing:2px}
+.level-number{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;background:linear-gradient(90deg,var(--accent3),#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.level-title-small{font-size:0.58rem;color:var(--accent3);margin-top:2px;max-width:130px;text-align:right;line-height:1.2}
+.today-stats{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;gap:16px}
+.stat-item{flex:1}
+.stat-label{font-size:0.6rem;color:var(--text2);letter-spacing:1px;margin-bottom:3px}
+.stat-value{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:var(--accent2)}
+.xp-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px}
+.xp-label-row{display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text2);margin-bottom:6px;letter-spacing:1px}
+.xp-track{height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);box-shadow:0 0 8px var(--glow)}
+.mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mode-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:all 0.3s;text-decoration:none;color:inherit}
+.mode-btn:hover{border-color:var(--accent);background:rgba(124,58,237,0.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,58,237,0.2)}
+.mode-btn .icon{font-size:1.8rem}
+.mode-btn .label{font-family:'Orbitron',sans-serif;font-size:0.65rem;letter-spacing:2px;color:var(--text2)}
+.mode-btn .sublabel{font-size:0.6rem;color:var(--text2);opacity:0.6}
+.weekly-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;cursor:pointer;transition:border-color 0.2s}
+.weekly-section:hover{border-color:var(--accent2)}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.section-title{font-family:'Orbitron',sans-serif;font-size:0.65rem;color:var(--text2);letter-spacing:2px}
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:70px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%}
+.bar-stack{flex:1;width:100%;display:flex;flex-direction:column-reverse;border-radius:3px;overflow:hidden;min-height:3px;background:rgba(255,255,255,0.04)}
+.bar-segment{width:100%}
+.bar-day{font-size:0.5rem;color:var(--text2)}
+.subject-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:3px;font-size:0.58rem;color:var(--text2)}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+
+/* STUDY SCREEN */
+#study-screen{align-items:center;justify-content:center;position:relative}
+.study-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;max-width:400px;padding:40px 18px;gap:22px;min-height:100vh;justify-content:center}
+.study-mode-label{font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:4px;color:var(--text2)}
+.timer-ring{position:relative;width:210px;height:210px;margin:0 auto}
+.timer-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:6}
+.ring-fill{fill:none;stroke:url(#ringGrad);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.timer-time{font-family:'Orbitron',sans-serif;font-size:2.6rem;font-weight:900;color:var(--text);letter-spacing:2px;text-shadow:0 0 30px rgba(124,58,237,0.5)}
+.timer-phase{font-size:0.6rem;color:var(--text2);letter-spacing:3px}
+.subject-display{display:flex;align-items:center;gap:8px;padding:8px 18px;background:var(--surface);border:1px solid var(--border);border-radius:99px;cursor:pointer;transition:all 0.2s}
+.subject-display:hover{border-color:var(--accent)}
+.subject-dot{width:9px;height:9px;border-radius:50%}
+.study-controls{display:flex;gap:14px;align-items:center}
+.ctrl-btn{border:none;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.ctrl-main{width:70px;height:70px;background:var(--accent);color:white;font-size:1.2rem;box-shadow:0 0 28px rgba(124,58,237,0.4)}
+.ctrl-main:hover{transform:scale(1.08);box-shadow:0 0 44px rgba(124,58,237,0.6)}
+.ctrl-sec{width:50px;height:50px;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:1rem}
+.ctrl-sec:hover{border-color:var(--accent2);color:var(--accent2)}
+.ctrl-stop{width:50px;height:50px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:1rem}
+.ctrl-stop:hover{background:rgba(239,68,68,0.2)}
+.pomo-info{text-align:center;font-size:0.72rem;color:var(--text2)}
+.pomo-cycle{font-family:'Orbitron',sans-serif;font-size:0.58rem;color:var(--accent3);letter-spacing:2px;margin-bottom:4px}
+.back-btn{position:absolute;top:18px;left:18px;background:none;border:none;color:var(--text2);font-size:1.1rem;cursor:pointer;transition:color 0.2s;z-index:10}
+.back-btn:hover{color:var(--text)}
+.ctrl-extend{width:50px;height:50px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--accent3);font-size:0.65rem;font-family:'Orbitron',sans-serif;letter-spacing:0;display:none}
+.ctrl-extend:hover{background:rgba(245,158,11,0.25)}
+
+/* SUBJECT MODAL */
+.subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.subject-choice{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--surface2);border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;transition:all 0.2s}
+.subject-choice:hover{transform:scale(1.03);background:rgba(255,255,255,0.04)}
+.subject-choice.selected{border-color:currentColor;background:rgba(255,255,255,0.05)}
+.subject-choice-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* STATS */
+#stats-screen{padding:0}
+.stats-content{padding:22px 18px;display:flex;flex-direction:column;gap:18px}
+.stats-header{display:flex;align-items:center;gap:12px}
+.stats-title{font-family:'Orbitron',sans-serif;font-size:0.95rem;letter-spacing:3px;color:var(--accent2)}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+.summary-card-label{font-size:0.58rem;color:var(--text2);letter-spacing:1px;margin-bottom:4px}
+.summary-card-value{font-family:'Orbitron',sans-serif;font-size:0.95rem;font-weight:700;color:var(--accent2)}
+.calendar-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+.calendar-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-month{font-family:'Orbitron',sans-serif;font-size:0.75rem;letter-spacing:2px}
+.cal-nav-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;transition:color 0.2s}
+.cal-nav-btn:hover{color:var(--text)}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day-label{font-size:0.52rem;color:var(--text2);text-align:center;padding:3px 0}
+.cal-day{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;cursor:default;transition:all 0.2s}
+.cal-day.has-data{cursor:pointer}
+.cal-day.has-data:hover{transform:scale(1.12)}
+.cal-day.today{box-shadow:0 0 0 1px var(--accent2)}
+.cal-day.empty{color:var(--text2);opacity:0.2}
+
+/* LEVEL SCREEN */
+#level-screen{padding:0}
+.level-content{padding:22px 18px;display:flex;flex-direction:column;gap:18px}
+.level-hero{text-align:center;padding:18px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.level-hero-number{font-family:'Orbitron',sans-serif;font-size:3.5rem;font-weight:900;background:linear-gradient(135deg,var(--accent3),#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.level-hero-sub{font-size:0.75rem;color:var(--text2);margin-top:6px}
+.chosen-title-row{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.level-tabs{display:flex;gap:8px}
+.level-tab{flex:1;padding:9px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:0.72rem;font-family:'Zen Kaku Gothic New',sans-serif;transition:all 0.2s;text-align:center}
+.level-tab.active{background:rgba(124,58,237,0.2);border-color:var(--accent);color:var(--text)}
+.bg-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bg-card{border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all 0.2s;position:relative;aspect-ratio:16/9}
+.bg-card.locked{opacity:0.28;cursor:not-allowed}
+.bg-card.selected{border-color:var(--accent2);box-shadow:0 0 16px rgba(6,182,212,0.3)}
+.bg-card:not(.locked):hover{transform:scale(1.04)}
+.bg-preview{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:flex-start;padding:4px 6px}
+.bg-name{font-size:0.52rem;color:rgba(255,255,255,0.8);background:rgba(0,0,0,0.5);padding:1px 4px;border-radius:3px;backdrop-filter:blur(4px)}
+.bg-lock{position:absolute;top:4px;right:4px;font-size:0.65rem}
+.bg-lv{position:absolute;top:4px;left:4px;font-size:0.48rem;color:rgba(255,255,255,0.5);font-family:'Orbitron',sans-serif}
+.bg-sel-mark{position:absolute;bottom:4px;right:4px;font-size:0.7rem}
+.title-list{display:flex;flex-direction:column;gap:6px}
+.title-card{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all 0.2s}
+.title-card.locked{opacity:0.28;cursor:not-allowed}
+.title-card.selected{border-color:var(--accent3);background:rgba(245,158,11,0.05)}
+.title-card:not(.locked):hover{border-color:var(--accent)}
+.title-icon{font-size:1.1rem}
+.title-name{font-size:0.82rem;flex:1}
+.title-lv{font-size:0.56rem;color:var(--text2);font-family:'Orbitron',sans-serif}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:10px 18px;z-index:300;min-width:240px;text-align:center;box-shadow:0 0 28px rgba(124,58,237,0.3);animation:nIn 0.35s ease,nOut 0.35s ease 2.65s forwards}
+@keyframes nIn{from{opacity:0;transform:translateX(-50%) translateY(18px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes nOut{from{opacity:1}to{opacity:0;transform:translateX(-50%) translateY(-8px)}}
+.notif-t{font-family:'Orbitron',sans-serif;font-size:0.65rem;color:var(--accent3);letter-spacing:2px}
+.notif-b{font-size:0.82rem;margin-top:3px}
+.lv-flash{position:fixed;inset:0;z-index:500;background:radial-gradient(circle,rgba(245,158,11,0.3) 0%,transparent 70%);pointer-events:none;animation:flash 1s ease forwards}
+@keyframes flash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3);border-radius:99px}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active">
+  <div class="home-content">
+    <div class="home-header">
+      <div class="app-title">STUDY<br>QUEST</div>
+      <div class="level-badge" onclick="showLevelScreen()">
+        <div class="level-label">LEVEL</div>
+        <div class="level-number" id="home-level">1</div>
+        <div class="level-title-small" id="home-title-small">—</div>
+      </div>
+    </div>
+    <div class="today-stats">
+      <div class="stat-item"><div class="stat-label">TODAY</div><div class="stat-value" id="today-val">0分</div></div>
+      <div class="stat-item"><div class="stat-label">STREAK</div><div class="stat-value" id="streak-val">0日</div></div>
+      <div class="stat-item"><div class="stat-label">TOTAL</div><div class="stat-value" id="total-val">0分</div></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-label-row"><span>NEXT LEVEL</span><span id="xp-label">0秒 / 1分</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xp-bar" style="width:0%"></div></div>
+    </div>
+    <div class="mode-buttons">
+      <div class="mode-btn" onclick="startMode('stopwatch')">
+        <div class="icon">⏱</div>
+        <div class="label">STOPWATCH</div>
+        <div class="sublabel">経過時間を記録</div>
+      </div>
+      <div class="mode-btn" onclick="startMode('pomodoro')">
+        <div class="icon">🍅</div>
+        <div class="label">POMODORO</div>
+        <div class="sublabel">25分集中 / 5分休憩</div>
+      </div>
+    </div>
+    <div class="weekly-section" onclick="showStats()">
+      <div class="section-header">
+        <div class="section-title">WEEKLY STUDY</div>
+        <div style="color:var(--text2);font-size:0.8rem">→</div>
+      </div>
+      <div class="bar-chart" id="weekly-chart"></div>
+      <div class="subject-legend" id="subj-legend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDY -->
+<div id="study-screen" class="screen">
+  <button class="back-btn" onclick="backFromStudy()">←</button>
+  <div class="study-content">
+    <div class="study-mode-label" id="s-mode-label">STOPWATCH</div>
+    <div class="timer-ring">
+      <svg viewBox="0 0 210 210">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#7c3aed"/>
+            <stop offset="100%" style="stop-color:#06b6d4"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring-bg" cx="105" cy="105" r="96"/>
+        <circle class="ring-fill" id="ring-fill" cx="105" cy="105" r="96"
+          stroke-dasharray="603" stroke-dashoffset="603"/>
+      </svg>
+      <div class="timer-center">
+        <div class="timer-time" id="timer-disp">00:00</div>
+        <div class="timer-phase" id="timer-phase">準備OK</div>
+      </div>
+    </div>
+    <div class="subject-display" onclick="openSubjectModal()">
+      <div class="subject-dot" id="s-dot" style="background:var(--none)"></div>
+      <div id="s-name" style="font-size:0.85rem">指定なし</div>
+      <div style="font-size:0.65rem;color:var(--text2)">▼ 変更</div>
+    </div>
+    <div class="pomo-info" id="pomo-info" style="display:none">
+      <div class="pomo-cycle" id="pomo-cycle">SET 1 — 集中</div>
+    </div>
+    <div class="study-controls">
+      <button class="ctrl-btn ctrl-stop" id="stop-btn" onclick="stopSession()">⏹</button>
+      <button class="ctrl-btn ctrl-main" id="pp-btn" onclick="togglePP()">▶</button>
+      <button class="ctrl-btn ctrl-extend" id="extend-btn" onclick="extendRest()">+5分</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats-screen" class="screen">
+  <div class="stats-content">
+    <div class="stats-header">
+      <button class="back-btn" style="position:relative;top:0;left:0" onclick="showHome()">←</button>
+      <div class="stats-title">STATISTICS</div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="summary-card-label">累計勉強時間</div><div class="summary-card-value" id="st-total"></div></div>
+      <div class="summary-card"><div class="summary-card-label">今日の勉強時間</div><div class="summary-card-value" id="st-today"></div></div>
+      <div class="summary-card"><div class="summary-card-label">最大連続勉強時間</div><div class="summary-card-value" id="st-maxcon"></div></div>
+      <div class="summary-card"><div class="summary-card-label">1日最大勉強時間</div><div class="summary-card-value" id="st-maxday"></div></div>
+      <div class="summary-card"><div class="summary-card-label">累計勉強日数</div><div class="summary-card-value" id="st-totaldays"></div></div>
+      <div class="summary-card"><div class="summary-card-label">連続勉強日数</div><div class="summary-card-value" id="st-streak"></div></div>
+    </div>
+    <div class="calendar-section">
+      <div class="calendar-nav">
+        <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+        <div class="cal-month" id="cal-label"></div>
+        <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+      </div>
+      <div class="calendar-grid" id="cal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVEL -->
+<div id="level-screen" class="screen">
+  <div class="level-content">
+    <div class="stats-header">
+      <button class="back-btn" style="position:relative;top:0;left:0" onclick="showHome()">←</button>
+      <div class="stats-title">MY PROFILE</div>
+    </div>
+    <div class="level-hero">
+      <div class="level-hero-number" id="prof-lv">1</div>
+      <div class="level-hero-sub">STUDYQUEST LEVEL</div>
+      <div class="xp-track" style="height:7px;margin-top:10px"><div class="xp-fill" id="prof-xp-bar" style="width:0%"></div></div>
+      <div style="font-size:0.6rem;color:var(--text2);margin-top:4px" id="prof-xp-text"></div>
+      <div class="chosen-title-row" id="chosen-title-row"><span style="font-size:0.7rem;color:var(--text2)">称号なし</span></div>
+    </div>
+    <div class="level-tabs">
+      <button class="level-tab active" id="tab-bg-btn" onclick="switchTab('bg')">🎨 背景</button>
+      <button class="level-tab" id="tab-title-btn" onclick="switchTab('title')">🏆 称号</button>
+    </div>
+    <div id="tab-bg"><div class="bg-grid" id="bg-grid"></div></div>
+    <div id="tab-title" style="display:none"><div class="title-list" id="title-list"></div></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="subj-modal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeSubjModal()">×</button>
+    <div class="modal-title">科目を選択</div>
+    <div class="subject-grid" id="subj-grid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="day-modal">
+  <div class="modal">
+    <button class="close-btn" onclick="document.getElementById('day-modal').classList.remove('active')">×</button>
+    <div class="modal-title" id="day-modal-title"></div>
+    <div id="day-modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const SUBJECTS=[
+  {id:'english',name:'英語',color:'var(--english)'},
+  {id:'japanese',name:'国語',color:'var(--japanese)'},
+  {id:'math',name:'数学',color:'var(--math)'},
+  {id:'science',name:'理科',color:'var(--science)'},
+  {id:'social',name:'社会',color:'var(--social)'},
+  {id:'none',name:'指定なし',color:'var(--none)'},
+];
+
+const MAX_LEVEL=5000;
+
+function xpForLevel(lv){
+  if(lv===1)return 60;
+  if(lv===2)return 300;
+  if(lv===3)return 600;
+  if(lv===4)return 900;
+  if(lv===5)return 1200;
+  if(lv===6)return 1500;
+  if(lv===7)return 1800;
+  if(lv===8)return 2400;
+  if(lv===9)return 3000;
+  return 3600;
+}
+
+// ============================================================
+// BACKGROUNDS (全て定義)
+// ============================================================
+function makeBgLevels(){
+  const r=[];
+  for(let i=5;i<=100;i+=5)r.push(i);
+  for(let i=120;i<=1000;i+=20)r.push(i);
+  for(let i=1100;i<=5000;i+=100)r.push(i);
+  return r;
+}
+const BG_LEVELS=makeBgLevels();
+
+// 背景CSS定義 — レベルが上がるほどかっこよく
+const BG_DEFS=[
+  // Lv5
+  {name:'夜空',css:'linear-gradient(160deg,#080815 0%,#141428 50%,#0a0a1a 100%)'},
+  // Lv10
+  {name:'深夜',css:'linear-gradient(135deg,#05051a 0%,#0d0d26 60%,#050515 100%)'},
+  // Lv15
+  {name:'月光',css:'radial-gradient(ellipse at 50% 0%,#1a1a2e 0%,#0a0a1a 70%,#000008 100%)'},
+  // Lv20
+  {name:'静寂',css:'linear-gradient(135deg,#0a0a12 0%,#151520 50%,#0a0a12 100%)'},
+  // Lv25
+  {name:'瞑想',css:'linear-gradient(160deg,#0d0d1f 0%,#1a1a30 40%,#0d0d1f 100%)'},
+  // Lv30
+  {name:'夕暮れ',css:'linear-gradient(160deg,#1a0a05 0%,#2d1508 50%,#1a0805 100%)'},
+  // Lv35
+  {name:'暮色',css:'linear-gradient(135deg,#150a1a 0%,#22103a 50%,#100815 100%)'},
+  // Lv40
+  {name:'深海',css:'linear-gradient(160deg,#001833 0%,#002244 50%,#001020 100%)'},
+  // Lv45
+  {name:'森林',css:'linear-gradient(135deg,#071a0d 0%,#0d2e18 50%,#071209 100%)'},
+  // Lv50
+  {name:'炎',css:'linear-gradient(160deg,#1a0500 0%,#2d0d00 50%,#150300 100%)'},
+  // Lv55
+  {name:'宇宙',css:'radial-gradient(ellipse at 30% 40%,#100528 0%,#000011 70%)'},
+  // Lv60
+  {name:'北極光',css:'linear-gradient(135deg,#001a0d 0%,#004d1a 30%,#002d2d 70%,#001a0d 100%)'},
+  // Lv65
+  {name:'溶岩',css:'linear-gradient(135deg,#1a0000 0%,#4a0000 50%,#1a0000 100%)'},
+  // Lv70
+  {name:'水晶',css:'linear-gradient(135deg,#0a0a1a 0%,#151535 30%,#0d1a35 70%,#0a0a1a 100%)'},
+  // Lv75
+  {name:'嵐',css:'linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 30%,#2d1b4e 70%,#0d0d1a 100%)'},
+  // Lv80
+  {name:'翡翠海',css:'radial-gradient(ellipse at 20% 80%,#002211 0%,#004422 50%,#001a0d 100%)'},
+  // Lv85
+  {name:'紫霞',css:'linear-gradient(160deg,#1a0033 0%,#2d0055 50%,#150022 100%)'},
+  // Lv90
+  {name:'黄金夢',css:'linear-gradient(135deg,#1a1200 0%,#2d2000 40%,#150f00 100%)'},
+  // Lv95
+  {name:'深紅',css:'radial-gradient(ellipse at 50% 50%,#1a0000 0%,#2d0000 50%,#0d0000 100%)'},
+  // Lv100
+  {name:'銀河',css:'radial-gradient(ellipse at 30% 50%,#0d0221 0%,#1a0533 40%,#000011 100%)'},
+  // Lv120
+  {name:'量子場',css:'conic-gradient(from 180deg at 50% 50%,#0d0221 0deg,#1a0533 90deg,#0a1a33 180deg,#0d0221 360deg)'},
+  // Lv140
+  {name:'暗黒物質',css:'radial-gradient(ellipse at 30% 30%,#060012 0%,#0d0221 40%,#000008 100%)'},
+  // Lv160
+  {name:'超新星',css:'radial-gradient(circle at 50% 50%,#1a0010 0%,#0d0010 40%,#000008 100%)'},
+  // Lv180
+  {name:'銀河団',css:'linear-gradient(135deg,#00001a 0%,#0a0a2e 25%,#1a0033 50%,#0a1a33 75%,#00001a 100%)'},
+  // Lv200
+  {name:'暗黒エネルギー',css:'radial-gradient(ellipse at 80% 20%,#080015 0%,#0d0221 50%,#000000 100%)'},
+  // Lv220
+  {name:'次元の裂け目',css:'linear-gradient(135deg,#000000 0%,#0a0015 30%,#150030 50%,#0a0015 70%,#000000 100%)'},
+  // Lv240
+  {name:'時空歪曲',css:'conic-gradient(from 0deg at 50% 50%,#000008 0deg,#0d0221 60deg,#1a0a33 120deg,#0d0221 180deg,#000008 360deg)'},
+  // Lv260
+  {name:'カオス渦',css:'radial-gradient(ellipse at 20% 80%,#100020 0%,#050010 50%,#000000 100%)'},
+  // Lv280
+  {name:'虚空の海',css:'radial-gradient(circle at 50% 50%,#080010 0%,#020008 50%,#000000 100%)'},
+  // Lv300
+  {name:'神々の戦場',css:'linear-gradient(160deg,#0a0010 0%,#180030 40%,#050015 70%,#0a0010 100%)'},
+  // Lv320
+  {name:'星間物質',css:'radial-gradient(ellipse at 60% 40%,#050018 0%,#0a0028 50%,#000010 100%)'},
+  // Lv340
+  {name:'時の果て',css:'linear-gradient(135deg,#000508 0%,#001020 40%,#000508 100%)'},
+  // Lv360
+  {name:'原始の炎',css:'radial-gradient(circle at 50% 100%,#1a0500 0%,#0d0200 50%,#000000 100%)'},
+  // Lv380
+  {name:'氷河',css:'linear-gradient(160deg,#000d1a 0%,#001a33 50%,#000d1a 100%)'},
+  // Lv400
+  {name:'結晶体',css:'conic-gradient(from 45deg at 50% 50%,#050015 0deg,#0d0530 60deg,#050015 120deg,#0a0028 180deg,#050015 360deg)'},
+  // Lv420
+  {name:'闇の王国',css:'radial-gradient(ellipse at 50% 0%,#100010 0%,#050008 60%,#000000 100%)'},
+  // Lv440
+  {name:'永夜',css:'linear-gradient(160deg,#000000 0%,#050008 30%,#0a0010 60%,#000000 100%)'},
+  // Lv460
+  {name:'宇宙の涙',css:'radial-gradient(circle at 30% 70%,#000a15 0%,#00051a 50%,#000000 100%)'},
+  // Lv480
+  {name:'光速の彼方',css:'linear-gradient(135deg,#000508 0%,#001020 30%,#050015 60%,#000508 100%)'},
+  // Lv500
+  {name:'超弦理論',css:'conic-gradient(from 270deg at 30% 70%,#000008 0deg,#080020 90deg,#000008 180deg,#040015 270deg,#000008 360deg)'},
+  // Lv520
+  {name:'多元宇宙',css:'radial-gradient(ellipse at 70% 30%,#08000a 0%,#0d000d 40%,#000000 100%)'},
+  // Lv540
+  {name:'ブラックホール',css:'radial-gradient(circle at 50% 50%,#000000 0%,#050005 30%,#0a000a 60%,#000000 100%)'},
+  // Lv560
+  {name:'暗黒騎士',css:'linear-gradient(135deg,#050000 0%,#0d0000 40%,#050000 100%)'},
+  // Lv580
+  {name:'虚無の王',css:'radial-gradient(ellipse at 50% 50%,#020002 0%,#050005 50%,#000000 100%)'},
+  // Lv600
+  {name:'創世の光',css:'conic-gradient(from 0deg at 50% 50%,#000005 0deg,#050015 45deg,#000005 90deg,#080020 135deg,#000005 180deg,#050015 225deg,#000005 270deg,#080020 315deg,#000005 360deg)'},
+  // Lv620
+  {name:'神話の地',css:'linear-gradient(135deg,#0a0005 0%,#15000a 40%,#080003 100%)'},
+  // Lv640
+  {name:'古代の星',css:'radial-gradient(ellipse at 40% 60%,#05000a 0%,#0a0015 50%,#000000 100%)'},
+  // Lv660
+  {name:'魔法陣',css:'conic-gradient(from 30deg at 50% 50%,#000008 0deg,#050018 30deg,#000008 60deg,#080020 90deg,#000008 120deg,#050018 150deg,#000008 180deg,#080020 210deg,#000008 240deg,#050018 270deg,#000008 300deg,#080020 330deg,#000008 360deg)'},
+  // Lv680
+  {name:'竜の眠る地',css:'radial-gradient(circle at 50% 80%,#0d0500 0%,#050200 50%,#000000 100%)'},
+  // Lv700
+  {name:'天空の城',css:'linear-gradient(160deg,#000510 0%,#001020 40%,#000820 100%)'},
+  // Lv720
+  {name:'海の底',css:'radial-gradient(ellipse at 50% 100%,#000d1a 0%,#000510 50%,#000000 100%)'},
+  // Lv740
+  {name:'砂漠の夜',css:'linear-gradient(135deg,#0d0800 0%,#1a1000 50%,#0d0800 100%)'},
+  // Lv760
+  {name:'極北',css:'radial-gradient(ellipse at 50% 0%,#001a1a 0%,#000d0d 50%,#000000 100%)'},
+  // Lv780
+  {name:'焦熱地獄',css:'radial-gradient(circle at 50% 100%,#1a0000 0%,#0d0000 40%,#000000 100%)'},
+  // Lv800
+  {name:'天国の門',css:'linear-gradient(160deg,#0a0a00 0%,#151500 40%,#0a0a00 100%)'},
+  // Lv820
+  {name:'次元の狭間',css:'conic-gradient(from 90deg at 50% 50%,#000000 0deg,#080008 45deg,#000000 90deg,#050015 135deg,#000000 180deg,#080008 225deg,#000000 270deg,#050015 315deg,#000000 360deg)'},
+  // Lv840
+  {name:'意識の海',css:'radial-gradient(ellipse at 30% 70%,#000510 0%,#00020a 50%,#000000 100%)'},
+  // Lv860
+  {name:'存在の根源',css:'radial-gradient(circle at 50% 50%,#020005 0%,#000002 60%,#000000 100%)'},
+  // Lv880
+  {name:'時間の結晶',css:'conic-gradient(from 180deg at 70% 30%,#000008 0deg,#050018 60deg,#000008 120deg,#080025 180deg,#000008 240deg,#050018 300deg,#000008 360deg)'},
+  // Lv900
+  {name:'宇宙の心臓',css:'radial-gradient(ellipse at 50% 50%,#0a0005 0%,#050002 40%,#000000 100%)'},
+  // Lv920
+  {name:'混沌の渦',css:'conic-gradient(from 0deg at 40% 60%,#000000 0deg,#050010 30deg,#000000 60deg,#080018 90deg,#000000 120deg,#050010 150deg,#000000 180deg,#080018 210deg,#000000 240deg,#050010 270deg,#000000 300deg,#080018 330deg,#000000 360deg)'},
+  // Lv940
+  {name:'光の海',css:'radial-gradient(ellipse at 50% 50%,#05050a 0%,#02020a 50%,#000000 100%)'},
+  // Lv960
+  {name:'影の王国',css:'linear-gradient(160deg,#000000 0%,#020002 30%,#000000 60%,#050005 100%)'},
+  // Lv980
+  {name:'幻の楽園',css:'radial-gradient(circle at 50% 50%,#050005 0%,#020002 50%,#000000 100%)'},
+  // Lv1000
+  {name:'究極の虚空',css:'linear-gradient(135deg,#000000 0%,#010001 30%,#000000 60%,#020002 100%)'},
+  // Lv1100
+  {name:'神の領域Ⅰ',css:'radial-gradient(ellipse at 20% 80%,#05000a 0%,#020005 50%,#000000 100%)'},
+  // Lv1200
+  {name:'神の領域Ⅱ',css:'conic-gradient(from 0deg at 50% 50%,#000000 0deg,#030008 60deg,#000000 120deg,#050010 180deg,#000000 240deg,#030008 300deg,#000000 360deg)'},
+  // Lv1300
+  {name:'創世記Ⅰ',css:'radial-gradient(circle at 50% 0%,#080008 0%,#030003 50%,#000000 100%)'},
+  // Lv1400
+  {name:'創世記Ⅱ',css:'linear-gradient(135deg,#000000 0%,#030003 25%,#000000 50%,#050005 75%,#000000 100%)'},
+  // Lv1500
+  {name:'天地創造Ⅰ',css:'conic-gradient(from 45deg at 60% 40%,#000000 0deg,#040008 45deg,#000000 90deg,#060010 135deg,#000000 180deg,#040008 225deg,#000000 270deg,#060010 315deg,#000000 360deg)'},
+  // Lv1600
+  {name:'天地創造Ⅱ',css:'radial-gradient(ellipse at 80% 20%,#060006 0%,#020002 50%,#000000 100%)'},
+  // Lv1700
+  {name:'万物の理Ⅰ',css:'radial-gradient(circle at 30% 70%,#040004 0%,#010001 50%,#000000 100%)'},
+  // Lv1800
+  {name:'万物の理Ⅱ',css:'linear-gradient(160deg,#000000 0%,#020002 20%,#040004 40%,#020002 60%,#000000 100%)'},
+  // Lv1900
+  {name:'宇宙の摂理Ⅰ',css:'conic-gradient(from 135deg at 50% 50%,#000000 0deg,#020005 45deg,#000000 90deg,#040008 135deg,#000000 180deg,#020005 225deg,#000000 270deg,#040008 315deg,#000000 360deg)'},
+  // Lv2000
+  {name:'宇宙の摂理Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#030003 0%,#010001 40%,#000000 100%)'},
+  // Lv2100
+  {name:'永劫Ⅰ',css:'linear-gradient(135deg,#000000 0%,#010101 50%,#000000 100%)'},
+  // Lv2200
+  {name:'永劫Ⅱ',css:'radial-gradient(circle at 50% 50%,#010101 0%,#000000 100%)'},
+  // Lv2300
+  {name:'無限Ⅰ',css:'conic-gradient(from 0deg at 50% 50%,#000000 0deg,#010001 90deg,#000000 180deg,#010001 270deg,#000000 360deg)'},
+  // Lv2400
+  {name:'無限Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#010001 0%,#000000 100%)'},
+  // Lv2500
+  {name:'絶対Ⅰ',css:'linear-gradient(135deg,#000000 0%,#000100 50%,#000000 100%)'},
+  // Lv2600
+  {name:'絶対Ⅱ',css:'radial-gradient(circle at 50% 50%,#000100 0%,#000000 100%)'},
+  // Lv2700
+  {name:'超越Ⅰ',css:'conic-gradient(from 90deg at 50% 50%,#000000 0deg,#000001 90deg,#000000 180deg,#010000 270deg,#000000 360deg)'},
+  // Lv2800
+  {name:'超越Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#000001 0%,#000000 100%)'},
+  // Lv2900
+  {name:'真無限Ⅰ',css:'linear-gradient(135deg,#000000 0%,#000001 50%,#000000 100%)'},
+  // Lv3000
+  {name:'真無限Ⅱ',css:'radial-gradient(circle at 50% 50%,#000001 0%,#000000 100%)'},
+  // Lv3100
+  {name:'神話級Ⅰ',css:'conic-gradient(from 0deg at 50% 50%,#000000 0deg,#010000 120deg,#000100 240deg,#000000 360deg)'},
+  // Lv3200
+  {name:'神話級Ⅱ',css:'radial-gradient(ellipse at 30% 30%,#010000 0%,#000000 100%)'},
+  // Lv3300
+  {name:'伝説級Ⅰ',css:'linear-gradient(160deg,#000000 0%,#010100 50%,#000000 100%)'},
+  // Lv3400
+  {name:'伝説級Ⅱ',css:'radial-gradient(circle at 70% 70%,#010100 0%,#000000 100%)'},
+  // Lv3500
+  {name:'史上最強Ⅰ',css:'conic-gradient(from 270deg at 50% 50%,#000000 0deg,#000101 90deg,#000000 180deg,#010001 270deg,#000000 360deg)'},
+  // Lv3600
+  {name:'史上最強Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#000101 0%,#000000 100%)'},
+  // Lv3700
+  {name:'究極神Ⅰ',css:'linear-gradient(135deg,#000000 0%,#000101 33%,#000000 66%,#010000 100%)'},
+  // Lv3800
+  {name:'究極神Ⅱ',css:'radial-gradient(circle at 50% 50%,#010100 0%,#000000 50%,#000101 100%)'},
+  // Lv3900
+  {name:'全知全能Ⅰ',css:'conic-gradient(from 0deg at 50% 50%,#000000 0deg,#010101 60deg,#000000 120deg,#010101 180deg,#000000 240deg,#010101 300deg,#000000 360deg)'},
+  // Lv4000
+  {name:'全知全能Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#010101 0%,#000000 100%)'},
+  // Lv4100
+  {name:'BEYOND Ⅰ',css:'linear-gradient(135deg,#000000 0%,#010101 50%,#000000 100%)'},
+  // Lv4200
+  {name:'BEYOND Ⅱ',css:'radial-gradient(circle at 50% 50%,#020202 0%,#000000 100%)'},
+  // Lv4300
+  {name:'ULTIMATE Ⅰ',css:'conic-gradient(from 180deg at 50% 50%,#000000 0deg,#020202 90deg,#000000 180deg,#010101 270deg,#000000 360deg)'},
+  // Lv4400
+  {name:'ULTIMATE Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#020202 0%,#000000 100%)'},
+  // Lv4500
+  {name:'ABSOLUTE Ⅰ',css:'linear-gradient(135deg,#000000 0%,#020202 40%,#000000 80%,#010101 100%)'},
+  // Lv4600
+  {name:'ABSOLUTE Ⅱ',css:'radial-gradient(circle at 50% 50%,#030303 0%,#000000 100%)'},
+  // Lv4700
+  {name:'INFINITE Ⅰ',css:'conic-gradient(from 0deg at 50% 50%,#000000 0deg,#030303 90deg,#000000 180deg,#020202 270deg,#000000 360deg)'},
+  // Lv4800
+  {name:'INFINITE Ⅱ',css:'radial-gradient(ellipse at 50% 50%,#030303 0%,#000000 100%)'},
+  // Lv4900
+  {name:'CHAMPION',css:'linear-gradient(135deg,#050000 0%,#000500 25%,#000005 50%,#050005 75%,#050500 100%)'},
+  // Lv5000
+  {name:'★ STUDYQUEST LEGEND ★',css:'conic-gradient(from 0deg at 50% 50%,#050000 0deg,#000500 72deg,#000005 144deg,#050005 216deg,#050500 288deg,#050000 360deg)'},
+];
+
+const BACKGROUNDS=BG_LEVELS.map((lv,i)=>{
+  const def=BG_DEFS[i]||{name:`背景Lv.${lv}`,css:'#000'};
+  return{id:`bg_${lv}`,level:lv,name:def.name,css:def.css};
+});
+
+// ============================================================
+// TITLES DATA (Lv20刻み、5000まで)
+// ============================================================
+const ALL_TITLE_NAMES=[
+  // 20〜200 (10個)
+  '勉強の種','学びの芽','知識の卵','努力の虫','集中の徒',
+  '学習の友','探究の人','向学の士','研鑽の者','勤勉の使い',
+  // 220〜400 (10個)
+  '学びの騎士','知識の守護者','努力の戦士','集中の剣士','探究の魔法使い',
+  '向学の賢者','研鑽の錬金術師','勤勉の英雄','学習の伝説','知識の神話',
+  // 420〜600 (10個)
+  '星の勉強家','月の学者','太陽の探究者','宇宙の知識人','時空の研究者',
+  '次元の賢者','量子の学び手','無限の探求者','永遠の学習者','不滅の知識人',
+  // 620〜800 (10個)
+  '伝説の学者','神話の研究者','史上最高の勉強家','学びの神','知識の至高者',
+  '探究の覇者','集中の王者','努力の帝王','向学の皇帝','研鑽の至尊',
+  // 820〜1000 (10個)
+  '学びの超越者','知識の絶対者','努力の究極体','集中の究極体','探究の究極体',
+  '向学の至高神','研鑽の宇宙神','学習の創造神','知識の全知者','勤勉の万能神',
+  // 1020〜1200 (10個)
+  '星々の支配者','銀河の知者','宇宙の王者','時間の支配者','空間の探究者',
+  '次元の覇者','量子の王者','意識の超越者','存在の探求者','虚無の征服者',
+  // 1220〜1400 (10個)
+  '伝説の覚醒者','神話の目覚め','史上最強の学び手','学びの究極神','知識の無限神',
+  '探究の永遠神','集中の宇宙神','努力の絶対神','向学の創造神','研鑽の全知神',
+  // 1420〜1600 (10個)
+  '超越した学者','次元を超えた知者','時空を制した者','宇宙を知り尽くした者','無限を学んだ者',
+  '永遠の求道者','不滅の探求者','至高の知識保有者','絶対の学習者','究極の研究者',
+  // 1620〜1800 (10個)
+  'マスターオブスタディ','ウルティメイトスカラー','エターナルクエスター','インフィニットノリッジ','アブソルートジニアス',
+  'サプリームインテレクト','アルティメイトワイズマン','ユニバーサルスコラー','コズミックセージ','トランセンデントマインド',
+  // 1820〜2000 (10個)
+  '勉強の頂点','学問の極み','知識の極北','努力の極致','集中の境地',
+  '探究の最果て','向学の絶頂','研鑽の頂','学習の究竟','勤勉の涅槃',
+  // 2020〜2200 (10個)
+  '二千年の知恵','永劫の学び','無窮の探求','不尽の努力','尽きぬ集中',
+  '絶えぬ探究','止まぬ向学','休まぬ研鑽','継ぎ足す知識','積み上がる叡智',
+  // 2220〜2400 (10個)
+  '神の領域の学び手','創世の研究者','天地を知る者','万物を学んだ者','宇宙を解読した者',
+  '時間を超えた学者','空間を超えた知者','次元を超えた研究者','存在を超えた探求者','虚無を超えた勉強家',
+  // 2420〜2600 (10個)
+  '伝説中の伝説','神話中の神話','史上空前の学者','唯一無二の知識人','比類なき努力家',
+  '前人未踏の集中者','空前絶後の探究者','類例なき向学者','他に並ぶ者なき研鑽者','前代未聞の学習者',
+  // 2620〜2800 (10個)
+  'STUDY GOD','KNOWLEDGE LORD','WISDOM EMPEROR','FOCUS KING','LEARNING DEMIGOD',
+  'OMNI STUDENT','OMNISCIENT LEARNER','INFINITE RESEARCHER','ETERNAL STUDENT','ABSOLUTE MASTER',
+  // 2820〜3000 (10個)
+  '三千に迫る魂','真の永遠の学者','本物の知識の神','究極を超えた者','絶対を超えた者',
+  '無限を超えた者','永遠を超えた者','宇宙を超えた者','存在を超えた者','虚無さえ超えた者',
+  // 3020〜3200 (10個)
+  'BEYOND REALITY SCHOLAR','TRANSCENDENT KNOWLEDGE','ULTIMATE BEYOND WISDOM','ABSOLUTE BEYOND FOCUS','INFINITE BEYOND LEARNING',
+  'ETERNAL BEYOND STUDY','COSMIC BEYOND MASTER','UNIVERSAL BEYOND SAGE','SUPREME BEYOND SCHOLAR','ULTIMATE BEYOND GENIUS',
+  // 3220〜3400 (10個)
+  '知識の頂点の更に上','学びの極みの更に先','努力の最果ての更に向こう','集中の境地の更に深み','探究の絶頂の更に高み',
+  '向学の涅槃の更に上','研鑽の究竟の更に先','学習の頂の更に向こう','勤勉の極北の更に深み','知識の究極の更に高み',
+  // 3420〜3600 (10個)
+  '存在を超越した学び手','時間を超越した研究者','空間を超越した知者','次元を超越した探求者','宇宙を超越した勉強家',
+  '物理を超越した学者','論理を超越した知識人','概念を超越した努力家','言語を超越した集中者','思考を超越した探究者',
+  // 3620〜3800 (10個)
+  'GODS OF STUDY','LORDS OF KNOWLEDGE','EMPERORS OF WISDOM','KINGS OF FOCUS','DEMIGODS OF LEARNING',
+  'OMNIPOTENT SCHOLARS','OMNISCIENT LEARNERS','INFINITE RESEARCHERS','ETERNAL STUDENTS','ABSOLUTE MASTERS',
+  // 3820〜4000 (10個)
+  '四千に届かんとする魂','学びを愛する者の中の者','知識に憑かれた求道者','努力を信ずる者の中の者','集中を極めた者の中の者',
+  '探究を生きる者の中の者','向学を誓った者の中の者','研鑽を積んだ者の中の者','学習を糧とする者の中の者','勤勉を体現する者の中の者',
+  // 4020〜4200 (10個)
+  'LEGEND OF LEGENDS','ULTIMATE OF ULTIMATES','SUPREME OF SUPREMES','ABSOLUTE OF ABSOLUTES','INFINITE OF INFINITES',
+  'ETERNAL OF ETERNALS','COSMIC OF COSMICS','UNIVERSAL OF UNIVERSALS','TRANSCENDENT OF ALL','BEYOND OF BEYONDS',
+  // 4220〜4400 (10個)
+  '伝説を超えた伝説','神話を超えた神話','究極を超えた究極','絶対を超えた絶対','無限を超えた無限',
+  '永遠を超えた永遠','宇宙を超えた宇宙','存在を超えた存在','虚無を超えた虚無','時間を超えた時間',
+  // 4420〜4600 (10個)
+  'THE SUPREME STUDENT','THE ULTIMATE LEARNER','THE ABSOLUTE SCHOLAR','THE INFINITE RESEARCHER','THE ETERNAL SEEKER',
+  'THE OMNISCIENT STUDENT','THE TRANSCENDENT LEARNER','THE BEYOND SCHOLAR','THE COSMIC RESEARCHER','THE UNIVERSAL SEEKER',
+  // 4620〜4800 (10個)
+  '四千八百を越えた者','学びの最後の地に立つ者','知識の果ての果てに立つ者','努力の終わりを知らぬ者','集中の限界を超えた者',
+  '探究の先を見た者','向学の終点に立つ者','研鑽の頂点に至った者','学習の完成者','勤勉の超越者',
+  // 4820〜5000 (10個)
+  'FINAL LEGEND','BEYOND ALL LEGENDS','THE LAST SCHOLAR','ULTIMATE BEYOND','∞ STUDY GOD',
+  'THE ABSOLUTE FINAL','OMNI STUDENT','INFINITE MASTER','ETERNAL SUPREME','★ STUDYQUEST CHAMPION ★',
+];
+
+const TITLE_ICONS=['📚','📖','✏️','🔬','🧠','⭐','🌙','☀️','🌟','💫','🌈','🔥','❄️','⚡','🌊','🏆','👑','💎','🌺','🦋','🚀','✨','🌌','💡','🎯','🗝️','⚔️','🛡️','🌠','🎓','🔮','🌸','🦄','🐉','⚡','🌋','🌊','🎆','🌙','⭐'];
+
+function makeTitleLevels(){
+  const r=[];for(let i=20;i<=MAX_LEVEL;i+=20)r.push(i);return r;
+}
+const TITLE_LEVELS=makeTitleLevels();
+
+const TITLES=TITLE_LEVELS.map((lv,i)=>({
+  id:`title_${lv}`,
+  level:lv,
+  name:ALL_TITLE_NAMES[i]||`称号 Lv.${lv}`,
+  icon:TITLE_ICONS[i%TITLE_ICONS.length]
+}));
+
+// ============================================================
+// STATE
+// ============================================================
+let S={
+  level:1,xp:0,totalSec:0,
+  daily:{},   // {'YYYY-MM-DD':{total:sec,subjects:{...}}}
+  maxDaySec:0,maxConSec:0,streakDays:0,totalDays:0,lastDate:null,
+  selBg:null,selTitle:null,
+  unlockedBgs:[],unlockedTitles:[],
+  // session
+  active:false,paused:true,mode:'stopwatch',subject:'none',
+  wallStart:null,   // ms, set on resume
+  accumSec:0,       // seconds committed this segment
+  // pomo
+  pomoPhase:'work',pomoSet:1,
+  pomoWorkSec:25*60,pomoRestSec:5*60,
+  pomoPhaseStart:0, // accumSec at start of current phase
+};
+
+function save(){localStorage.setItem('sq4',JSON.stringify(S));}
+function load(){
+  try{const r=localStorage.getItem('sq4');if(r)Object.assign(S,JSON.parse(r));}catch(e){}
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmtTime(s){
+  s=Math.max(0,Math.floor(s));
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+  if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return`${m}:${String(sec).padStart(2,'0')}`;
+}
+function fmtH(s){
+  s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  if(h>0)return`${h}時間${m}分`;return`${m}分`;
+}
+function subj(id){return SUBJECTS.find(x=>x.id===id)||SUBJECTS[5];}
+
+// ============================================================
+// STUDY TIME ADDITION
+// ============================================================
+function addTime(sec,subject){
+  if(sec<=0)return;
+  const today=todayStr();
+  const isNew=!S.daily[today];
+  if(isNew){S.daily[today]={total:0,subjects:{}};}
+  S.daily[today].total+=sec;
+  S.daily[today].subjects[subject]=(S.daily[today].subjects[subject]||0)+sec;
+  S.totalSec+=sec;
+  if(S.daily[today].total>S.maxDaySec)S.maxDaySec=S.daily[today].total;
+  if(isNew)updateStreak(today);
+  // XP
+  S.xp+=sec;
+  let leveled=false;
+  while(S.level<MAX_LEVEL){
+    const need=xpForLevel(S.level);
+    if(S.xp>=need){S.xp-=need;S.level++;leveled=true;onLevelUp(S.level);}
+    else break;
+  }
+  if(leveled)showLvUpEffect();
+  save();
+  updateHomeUI();
+}
+
+function updateStreak(today){
+  const yest=new Date(today);yest.setDate(yest.getDate()-1);
+  const ys=yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');
+  if(S.lastDate===ys)S.streakDays++;
+  else if(S.lastDate!==today)S.streakDays=1;
+  if(S.lastDate!==today){S.totalDays++;S.lastDate=today;}
+}
+
+function onLevelUp(lv){
+  BACKGROUNDS.forEach(bg=>{if(bg.level===lv&&!S.unlockedBgs.includes(bg.id)){S.unlockedBgs.push(bg.id);setTimeout(()=>notif('🎨 背景解放！',`Lv.${lv} 「${bg.name}」`),1500);}});
+  TITLES.forEach(t=>{if(t.level===lv&&!S.unlockedTitles.includes(t.id)){S.unlockedTitles.push(t.id);setTimeout(()=>notif('🏆 称号獲得！',`「${t.icon}${t.name}」`),2200);}});
+}
+
+// ============================================================
+// TIMER ENGINE
+// ============================================================
+let timerIv=null;
+
+function startIv(){
+  if(timerIv)clearInterval(timerIv);
+  timerIv=setInterval(tick,1000);
+}
+
+function tick(){
+  if(S.paused||!S.active||!S.wallStart)return;
+  const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
+  const total=S.accumSec+elapsed;
+  if(S.mode==='stopwatch'){
+    updateTimerDisp(total);
+    setRing(-1,-1);
+    document.getElementById('timer-phase').textContent='計測中';
+  }else{
+    pomoTick(total);
+  }
+}
+
+function pomoTick(total){
+  const phaseElapsed=total-S.pomoPhaseStart;
+  if(S.pomoPhase==='work'){
+    const remain=S.pomoWorkSec-phaseElapsed;
+    if(remain<=0){
+      // work done
+      const elapsed2=Math.floor((Date.now()-S.wallStart)/1000);
+      addTime(S.pomoWorkSec,S.subject);
+      S.accumSec+=S.pomoWorkSec;
+      S.wallStart=Date.now();
+      S.pomoPhase='rest';S.pomoRestSec=5*60;
+      S.pomoPhaseStart=S.accumSec;
+      playBeep();
+      notif('⏸️ 休憩タイム！','5分間休憩しましょう');
+      document.getElementById('extend-btn').style.display='flex';
+      updatePomoLabel();
+      setRing(5*60,5*60);
+    }else{
+      updateTimerDisp(remain);setRing(remain,S.pomoWorkSec);
+      document.getElementById('timer-phase').textContent='集中中';
+    }
+  }else{
+    const remain=S.pomoRestSec-phaseElapsed;
+    if(remain<=0){
+      // rest done
+      S.accumSec+=S.pomoRestSec;
+      S.wallStart=Date.now();
+      S.pomoPhase='work';S.pomoSet++;
+      S.pomoWorkSec=25*60;S.pomoRestSec=5*60;
+      S.pomoPhaseStart=S.accumSec;
+      playBeep();
+      notif('✅ 集中タイム！',`Set ${S.pomoSet} 開始`);
+      document.getElementById('extend-btn').style.display='none';
+      updatePomoLabel();
+      setRing(25*60,25*60);
+    }else{
+      updateTimerDisp(remain);setRing(remain,S.pomoRestSec);
+      document.getElementById('timer-phase').textContent='休憩中';
+      document.getElementById('ring-fill').style.stroke='var(--accent2)';
+    }
+  }
+}
+
+function updateTimerDisp(sec){
+  document.getElementById('timer-disp').textContent=fmtTime(sec);
+}
+
+function setRing(cur,total){
+  const rf=document.getElementById('ring-fill');
+  const C=603;
+  if(total<=0||cur<0){rf.style.strokeDashoffset='0';rf.style.stroke='url(#ringGrad)';return;}
+  rf.style.strokeDashoffset=C*(1-Math.max(0,cur)/total);
+  if(S.pomoPhase==='rest')rf.style.stroke='var(--accent2)';
+  else rf.style.stroke='url(#ringGrad)';
+}
+
+function updatePomoLabel(){
+  const el=document.getElementById('pomo-cycle');
+  el.textContent=`SET ${S.pomoSet} — ${S.pomoPhase==='work'?'集中':'休憩'}`;
+  el.style.color=S.pomoPhase==='work'?'var(--accent3)':'var(--accent2)';
+}
+
+// ============================================================
+// SESSION CONTROL
+// ============================================================
+function startMode(mode){
+  S.mode=mode;S.active=true;S.paused=true;S.accumSec=0;S.wallStart=null;
+  if(mode==='pomodoro'){
+    S.pomoPhase='work';S.pomoSet=1;S.pomoWorkSec=25*60;S.pomoRestSec=5*60;S.pomoPhaseStart=0;
+    document.getElementById('pomo-info').style.display='block';
+    document.getElementById('extend-btn').style.display='none';
+    document.getElementById('s-mode-label').textContent='POMODORO';
+    updateTimerDisp(25*60);setRing(25*60,25*60);updatePomoLabel();
+  }else{
+    document.getElementById('pomo-info').style.display='none';
+    document.getElementById('extend-btn').style.display='none';
+    document.getElementById('s-mode-label').textContent='STOPWATCH';
+    updateTimerDisp(0);setRing(-1,-1);
+    document.getElementById('timer-phase').textContent='準備OK';
+  }
+  updateSubjDisp();applyBg();
+  showScreen('study-screen');
+  openSubjectModal();
+  startIv();save();
+}
+
+function togglePP(){
+  if(!S.active)return;
+  if(S.paused){
+    S.wallStart=Date.now();S.paused=false;
+    document.getElementById('pp-btn').textContent='⏸';
+  }else{
+    commitSeg();S.paused=true;
+    document.getElementById('pp-btn').textContent='▶';
+  }
+  save();
+}
+
+function commitSeg(){
+  if(!S.wallStart)return;
+  const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
+  if(S.mode==='stopwatch'){addTime(elapsed,S.subject);}
+  S.accumSec+=elapsed;S.wallStart=null;
+}
+
+function stopSession(){
+  if(!S.active)return;
+  if(!S.paused&&S.wallStart)commitSeg();
+  S.active=false;S.paused=true;
+  if(timerIv)clearInterval(timerIv);timerIv=null;
+  showHome();save();
+}
+
+function extendRest(){
+  S.pomoRestSec+=5*60;
+  notif('⏱ 5分延長','休憩をもう少し続けましょう');
+}
+
+function backFromStudy(){
+  if(S.active){if(confirm('セッションを終了しますか？'))stopSession();}
+  else showHome();
+}
+
+// ============================================================
+// SUBJECT
+// ============================================================
+function openSubjectModal(){
+  const g=document.getElementById('subj-grid');g.innerHTML='';
+  SUBJECTS.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='subject-choice'+(S.subject===s.id?' selected':'');
+    d.style.color=s.color;
+    d.innerHTML=`<div class="subject-choice-dot" style="background:${s.color}"></div><span>${s.name}</span>`;
+    d.onclick=()=>{S.subject=s.id;updateSubjDisp();closeSubjModal();save();};
+    g.appendChild(d);
+  });
+  document.getElementById('subj-modal').classList.add('active');
+}
+function closeSubjModal(){document.getElementById('subj-modal').classList.remove('active');}
+function updateSubjDisp(){
+  const s=subj(S.subject);
+  document.getElementById('s-dot').style.background=s.color;
+  document.getElementById('s-name').textContent=s.name;
+}
+
+// ============================================================
+// SOUND
+// ============================================================
+function playBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[660,0.15],[880,0.3]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;g.gain.setValueAtTime(0.3,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.12);
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.12);
+    });
+  }catch(e){}
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+function notif(title,body){
+  const el=document.createElement('div');el.className='notif';
+  el.innerHTML=`<div class="notif-t">${title}</div><div class="notif-b">${body}</div>`;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),3100);
+}
+function showLvUpEffect(){
+  const el=document.createElement('div');el.className='lv-flash';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1000);
+  notif(`🎉 LEVEL UP! → Lv.${S.level}`,'レベルが上がりました！');
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  applyBg();
+}
+function showHome(){showScreen('home-screen');updateHomeUI();}
+function showStats(){showScreen('stats-screen');updateStatsUI();}
+function showLevelScreen(){showScreen('level-screen');updateLevelUI();}
+
+// ============================================================
+// HOME UI
+// ============================================================
+function updateHomeUI(){
+  const today=todayStr();
+  const todaySec=S.daily[today]?.total||0;
+  document.getElementById('home-level').textContent=S.level;
+  document.getElementById('today-val').textContent=fmtH(todaySec);
+  document.getElementById('streak-val').textContent=S.streakDays+'日';
+  document.getElementById('total-val').textContent=fmtH(S.totalSec);
+  const need=xpForLevel(S.level);
+  const pct=S.level>=MAX_LEVEL?100:Math.min(100,(S.xp/need)*100);
+  document.getElementById('xp-bar').style.width=pct+'%';
+  document.getElementById('xp-label').textContent=`${Math.floor(S.xp)}秒 / ${fmtH(need)}`;
+  const t=S.selTitle?TITLES.find(x=>x.id===S.selTitle):null;
+  document.getElementById('home-title-small').textContent=t?t.icon+t.name:'—';
+  renderWeekly();
+}
+
+function renderWeekly(){
+  const chart=document.getElementById('weekly-chart');chart.innerHTML='';
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);
+    days.push({str:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
+    label:['日','月','火','水','木','金','土'][d.getDay()]});}
+  const maxSec=Math.max(1,...days.map(d=>S.daily[d.str]?.total||0));
+  days.forEach(day=>{
+    const data=S.daily[day.str]||{total:0,subjects:{}};
+    const col=document.createElement('div');col.className='bar-col';
+    const stack=document.createElement('div');stack.className='bar-stack';
+    const hPct=(data.total/maxSec)*100;
+    if(data.total>0){
+      ['english','japanese','math','science','social','none'].forEach(sid=>{
+        const sec=data.subjects[sid]||0;if(!sec)return;
+        const seg=document.createElement('div');seg.className='bar-segment';
+        seg.style.background=subj(sid).color;
+        seg.style.height=((sec/data.total)*hPct)+'%';
+        stack.appendChild(seg);
+      });
+    }
+    const lbl=document.createElement('div');lbl.className='bar-day';lbl.textContent=day.label;
+    col.appendChild(stack);col.appendChild(lbl);chart.appendChild(col);
+  });
+  const legend=document.getElementById('subj-legend');legend.innerHTML='';
+  SUBJECTS.forEach(s=>{
+    const li=document.createElement('div');li.className='legend-item';
+    li.innerHTML=`<div class="legend-dot" style="background:${s.color}"></div>${s.name}`;
+    legend.appendChild(li);
+  });
+}
+
+// ============================================================
+// STATS UI
+// ============================================================
+let calY=new Date().getFullYear(),calM=new Date().getMonth();
+function updateStatsUI(){
+  const today=todayStr();
+  document.getElementById('st-total').textContent=fmtH(S.totalSec);
+  document.getElementById('st-today').textContent=fmtH(S.daily[today]?.total||0);
+  document.getElementById('st-maxcon').textContent=fmtH(S.maxConSec);
+  document.getElementById('st-maxday').textContent=fmtH(S.maxDaySec);
+  document.getElementById('st-totaldays').textContent=S.totalDays+'日';
+  document.getElementById('st-streak').textContent=S.streakDays+'日';
+  renderCal();
+}
+function renderCal(){
+  document.getElementById('cal-label').textContent=`${calY}年${calM+1}月`;
+  const grid=document.getElementById('cal-grid');grid.innerHTML='';
+  ['日','月','火','水','木','金','土'].forEach(d=>{
+    const el=document.createElement('div');el.className='cal-day-label';el.textContent=d;grid.appendChild(el);
+  });
+  const first=new Date(calY,calM,1).getDay();
+  const dim=new Date(calY,calM+1,0).getDate();
+  const today=todayStr();
+  for(let i=0;i<first;i++){const el=document.createElement('div');el.className='cal-day empty';grid.appendChild(el);}
+  for(let d=1;d<=dim;d++){
+    const ds=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const data=S.daily[ds];
+    const el=document.createElement('div');
+    el.className='cal-day'+(data?' has-data':'')+(ds===today?' today':'');
+    el.textContent=d;
+    if(data){
+      const intensity=Math.min(1,data.total/(3*3600));
+      el.style.background=`rgba(124,58,237,${0.1+intensity*0.5})`;
+      el.onclick=()=>showDayModal(ds,data);
+    }
+    grid.appendChild(el);
+  }
+}
+function calMove(dir){calM+=dir;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCal();}
+function showDayModal(ds,data){
+  document.getElementById('day-modal-title').textContent=ds;
+  const body=document.getElementById('day-modal-body');body.innerHTML='';
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:700';
+  row.innerHTML=`<span>合計</span><span style="font-family:Orbitron,sans-serif">${fmtH(data.total)}</span>`;
+  body.appendChild(row);
+  SUBJECTS.forEach(s=>{
+    const sec=data.subjects[s.id];if(!sec)return;
+    const r=document.createElement('div');
+    r.style.cssText='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.85rem';
+    r.innerHTML=`<span style="color:${s.color}">${s.name}</span><span>${fmtH(sec)}</span>`;
+    body.appendChild(r);
+  });
+  document.getElementById('day-modal').classList.add('active');
+}
+
+// ============================================================
+// LEVEL UI
+// ============================================================
+function updateLevelUI(){
+  document.getElementById('prof-lv').textContent=S.level;
+  const need=xpForLevel(S.level);
+  const pct=S.level>=MAX_LEVEL?100:Math.min(100,(S.xp/need)*100);
+  document.getElementById('prof-xp-bar').style.width=pct+'%';
+  document.getElementById('prof-xp-text').textContent=`${Math.floor(S.xp)}秒 / ${fmtH(need)}`;
+  const t=S.selTitle?TITLES.find(x=>x.id===S.selTitle):null;
+  const trow=document.getElementById('chosen-title-row');
+  trow.innerHTML=t?`<span style="font-size:1.1rem">${t.icon}</span><span style="color:var(--accent3)">${t.name}</span>`:`<span style="font-size:0.7rem;color:var(--text2)">称号なし</span>`;
+  renderBgGrid();renderTitleList();
+}
+function switchTab(tab){
+  document.getElementById('tab-bg-btn').className='level-tab'+(tab==='bg'?' active':'');
+  document.getElementById('tab-title-btn').className='level-tab'+(tab==='title'?' active':'');
+  document.getElementById('tab-bg').style.display=tab==='bg'?'block':'none';
+  document.getElementById('tab-title').style.display=tab==='title'?'block':'none';
+}
+function renderBgGrid(){
+  const grid=document.getElementById('bg-grid');grid.innerHTML='';
+  BACKGROUNDS.forEach(bg=>{
+    const unlocked=S.unlockedBgs.includes(bg.id)||S.level>=bg.level;
+    const selected=S.selBg===bg.id;
+    const card=document.createElement('div');
+    card.className='bg-card'+(unlocked?'':' locked')+(selected?' selected':'');
+    card.innerHTML=`
+      <div class="bg-preview" style="background:${bg.css}">
+        <div class="bg-name">${bg.name}</div>
+      </div>
+      <div class="bg-lv">Lv.${bg.level}</div>
+      ${!unlocked?'<div class="bg-lock">🔒</div>':''}
+      ${selected?'<div class="bg-sel-mark">✓</div>':''}
+    `;
+    if(unlocked)card.onclick=()=>{S.selBg=S.selBg===bg.id?null:bg.id;save();applyBg();renderBgGrid();};
+    grid.appendChild(card);
+  });
+}
+function renderTitleList(){
+  const list=document.getElementById('title-list');list.innerHTML='';
+  TITLES.forEach(t=>{
+    const unlocked=S.unlockedTitles.includes(t.id)||S.level>=t.level;
+    const selected=S.selTitle===t.id;
+    const card=document.createElement('div');
+    card.className='title-card'+(unlocked?'':' locked')+(selected?' selected':'');
+    card.innerHTML=`<div class="title-icon">${t.icon}</div><div class="title-name">${t.name}</div><div class="title-lv">Lv.${t.level}</div>${!unlocked?'<span>🔒</span>':''}`;
+    if(unlocked)card.onclick=()=>{S.selTitle=S.selTitle===t.id?null:t.id;save();updateLevelUI();updateHomeUI();};
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+// BACKGROUND
+// ============================================================
+function applyBg(){
+  const bg=S.selBg?BACKGROUNDS.find(b=>b.id===S.selBg):null;
+  if(bg)document.body.style.background=bg.css;
+  else document.body.style.background='var(--bg)';
+}
+
+// ============================================================
+// PAGE VISIBILITY & PERSISTENCE
+// ============================================================
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&!S.paused&&S.active){tick();}
+});
+
+window.addEventListener('beforeunload',()=>{
+  if(!S.paused&&S.active&&S.wallStart){
+    const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
+    if(S.mode==='stopwatch')addTime(elapsed,S.subject);
+    S.accumSec+=elapsed;S.wallStart=Date.now();
+  }
+  save();
+});
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  load();
+  applyBg();
+  if(S.active){
+    S.paused=true;
+    document.getElementById('pp-btn').textContent='▶';
+    updateSubjDisp();
+    if(S.mode==='pomodoro'){
+      document.getElementById('pomo-info').style.display='block';
+      updatePomoLabel();
+    }
+    startIv();
+    showScreen('study-screen');
+  }else{
+    showHome();
+  }
+});
+</script>
+</body>
+</html>
