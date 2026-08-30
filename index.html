@@ -138,6 +138,16 @@ body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var
 .bg-lock{position:absolute;top:4px;right:4px;font-size:0.65rem}
 .bg-lv{position:absolute;top:4px;left:4px;font-size:0.48rem;color:rgba(255,255,255,0.5);font-family:'Orbitron',sans-serif}
 .bg-sel-mark{position:absolute;bottom:4px;right:4px;font-size:0.7rem}
+/* Tiered background animations — the higher the level tier a background
+   belongs to, the more alive it looks. Applied both to the small gallery
+   previews and to <body> when a background is the active theme. */
+@keyframes bgShimmer{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
+.bg-anim-shimmer{animation:bgShimmer 4s ease-in-out infinite}
+@keyframes bgRotate{0%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(20deg) brightness(1.1)}100%{filter:hue-rotate(0deg) brightness(1)}}
+.bg-anim-rotate{animation:bgRotate 9s ease-in-out infinite}
+@keyframes bgLegend{0%{filter:hue-rotate(0deg) brightness(1) saturate(1)}50%{filter:hue-rotate(25deg) brightness(1.35) saturate(1.3)}100%{filter:hue-rotate(0deg) brightness(1) saturate(1)}}
+.bg-anim-legend{animation:bgLegend 5s ease-in-out infinite}
+body.bg-anim-legend{box-shadow:inset 0 0 140px rgba(255,255,255,0.06)}
 .title-list{display:flex;flex-direction:column;gap:6px}
 .title-card{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all 0.2s}
 .title-card.locked{opacity:0.28;cursor:not-allowed}
@@ -562,9 +572,39 @@ const BG_DEFS=[
   {name:'★ STUDYQUEST LEGEND ★',css:'conic-gradient(from 0deg at 50% 50%,#050000 0deg,#000500 72deg,#000005 144deg,#050005 216deg,#050500 288deg,#050000 360deg)'},
 ];
 
+// Backgrounds are generated programmatically so that every single one of the
+// 100+ unlockable backgrounds is guaranteed a visually distinct look. Level
+// decides the "tier" (structural style: flat 2-tone at low level, richer
+// radial blends in the mid tiers, then animated conic/glow "legendary"
+// looks up top), and within each tier the hue is spread perfectly evenly
+// around the color wheel (360°/tier-size apart) so that two backgrounds
+// sharing a tier are never a near-identical near-miss shade of each other —
+// each tier also starts at its own offset so neighbouring tiers don't line
+// up in hue either. Names are still the hand-written ones above.
+function tierOf(level){return level<100?0:level<1000?1:level<3000?2:3;}
+function genBgLook(tierRank,tierCount,tier){
+  const hue=Math.round((tier*83+tierRank*(360/tierCount))%360);
+  const hue2=(hue+42)%360, hue3=(hue+318)%360;
+  if(tier===0){
+    return{css:`linear-gradient(135deg, hsl(${hue} 55% 12%) 0%, hsl(${hue2} 55% 20%) 100%)`,cls:''};
+  }
+  if(tier===1){
+    return{css:`radial-gradient(circle at 25% 25%, hsl(${hue2} 65% 24%) 0%, hsl(${hue} 55% 14%) 55%, hsl(${hue3} 45% 8%) 100%)`,cls:'bg-anim-shimmer'};
+  }
+  if(tier===2){
+    return{css:`conic-gradient(from 0deg at 50% 50%, hsl(${hue} 65% 16%) 0deg, hsl(${hue2} 80% 26%) 120deg, hsl(${hue3} 65% 18%) 240deg, hsl(${hue} 65% 16%) 360deg), radial-gradient(circle at 50% 50%, hsla(${hue2},100%,70%,0.22) 0%, transparent 60%)`,cls:'bg-anim-rotate'};
+  }
+  return{css:`conic-gradient(from 0deg at 50% 50%, hsl(${hue} 90% 14%) 0deg, hsl(${hue2} 100% 26%) 90deg, hsl(${hue3} 90% 18%) 180deg, hsl(${hue2} 100% 28%) 270deg, hsl(${hue} 90% 14%) 360deg), radial-gradient(circle at 28% 22%, hsla(${hue2},100%,75%,0.35) 0%, transparent 45%), radial-gradient(circle at 72% 78%, hsla(${hue3},100%,72%,0.3) 0%, transparent 40%)`,cls:'bg-anim-legend'};
+}
+const BG_TIER_COUNTS=[0,0,0,0];
+BG_LEVELS.forEach(lv=>BG_TIER_COUNTS[tierOf(lv)]++);
+const bgTierSeen=[0,0,0,0];
 const BACKGROUNDS=BG_LEVELS.map((lv,i)=>{
-  const def=BG_DEFS[i]||{name:`背景Lv.${lv}`,css:'#000'};
-  return{id:`bg_${lv}`,level:lv,name:def.name,css:def.css};
+  const def=BG_DEFS[i]||{name:`背景Lv.${lv}`};
+  const tier=tierOf(lv);
+  const tierRank=bgTierSeen[tier]++;
+  const look=genBgLook(tierRank,BG_TIER_COUNTS[tier],tier);
+  return{id:`bg_${lv}`,level:lv,name:def.name,css:look.css,cls:look.cls};
 });
 
 // ============================================================
@@ -645,7 +685,7 @@ const ALL_TITLE_NAMES=[
   '探究の先を見た者','向学の終点に立つ者','研鑽の頂点に至った者','学習の完成者','勤勉の超越者',
   // 4820〜5000 (10個)
   'FINAL LEGEND','BEYOND ALL LEGENDS','THE LAST SCHOLAR','ULTIMATE BEYOND','∞ STUDY GOD',
-  'THE ABSOLUTE FINAL','OMNI STUDENT','INFINITE MASTER','ETERNAL SUPREME','★ STUDYQUEST CHAMPION ★',
+  'THE ABSOLUTE FINAL','OMNISCIENT CHAMPION','INFINITE MASTER','ETERNAL SUPREME','★ STUDYQUEST CHAMPION ★',
 ];
 
 const TITLE_ICONS=['📚','📖','✏️','🔬','🧠','⭐','🌙','☀️','🌟','💫','🌈','🔥','❄️','⚡','🌊','🏆','👑','💎','🌺','🦋','🚀','✨','🌌','💡','🎯','🗝️','⚔️','🛡️','🌠','🎓','🔮','🌸','🦄','🐉','⚡','🌋','🌊','🎆','🌙','⭐'];
@@ -668,17 +708,17 @@ const TITLES=TITLE_LEVELS.map((lv,i)=>({
 let S={
   level:1,xp:0,totalSec:0,
   daily:{},   // {'YYYY-MM-DD':{total:sec,subjects:{...}}}
-  maxDaySec:0,maxConSec:0,streakDays:0,totalDays:0,lastDate:null,
+  maxDaySec:0,maxConSec:0,curConSec:0,streakDays:0,totalDays:0,lastDate:null,
   selBg:null,selTitle:null,
   unlockedBgs:[],unlockedTitles:[],
   // session
-  active:false,paused:true,mode:'stopwatch',subject:'none',
-  wallStart:null,   // ms, set on resume
-  accumSec:0,       // seconds committed this segment
+  active:false,paused:true,hasStarted:false,mode:'stopwatch',subject:'none',
+  wallStart:null,   // ms, absolute timestamp when current live segment began
+  accumSec:0,       // seconds already committed into this run (survives pause/close)
   // pomo
   pomoPhase:'work',pomoSet:1,
   pomoWorkSec:25*60,pomoRestSec:5*60,
-  pomoPhaseStart:0, // accumSec at start of current phase
+  pomoPhaseStart:0, // accumSec value at start of current phase
 };
 
 function save(){localStorage.setItem('sq4',JSON.stringify(S));}
@@ -708,40 +748,63 @@ function subj(id){return SUBJECTS.find(x=>x.id===id)||SUBJECTS[5];}
 // ============================================================
 // STUDY TIME ADDITION
 // ============================================================
-function addTime(sec,subject){
+// sec: whole seconds to credit. dateStr: which local day it belongs to
+// (defaults to today). silent: suppress toast/flash notifications
+// (used when catching up on time that passed while the app was closed).
+function addTime(sec,subject,dateStr,silent){
   if(sec<=0)return;
-  const today=todayStr();
-  const isNew=!S.daily[today];
-  if(isNew){S.daily[today]={total:0,subjects:{}};}
-  S.daily[today].total+=sec;
-  S.daily[today].subjects[subject]=(S.daily[today].subjects[subject]||0)+sec;
+  const day=dateStr||todayStr();
+  const isNew=!S.daily[day];
+  if(isNew){S.daily[day]={total:0,subjects:{}};}
+  S.daily[day].total+=sec;
+  S.daily[day].subjects[subject]=(S.daily[day].subjects[subject]||0)+sec;
   S.totalSec+=sec;
-  if(S.daily[today].total>S.maxDaySec)S.maxDaySec=S.daily[today].total;
-  if(isNew)updateStreak(today);
-  // XP
+  if(S.daily[day].total>S.maxDaySec)S.maxDaySec=S.daily[day].total;
+  if(isNew)updateStreak(day);
+  // continuous-session tracking
+  S.curConSec+=sec;
+  if(S.curConSec>S.maxConSec)S.maxConSec=S.curConSec;
+  // XP / level
   S.xp+=sec;
   let leveled=false;
   while(S.level<MAX_LEVEL){
     const need=xpForLevel(S.level);
-    if(S.xp>=need){S.xp-=need;S.level++;leveled=true;onLevelUp(S.level);}
+    if(S.xp>=need){S.xp-=need;S.level++;leveled=true;onLevelUp(S.level,silent);}
     else break;
   }
-  if(leveled)showLvUpEffect();
-  save();
+  if(leveled&&!silent)showLvUpEffect();
   updateHomeUI();
 }
 
-function updateStreak(today){
-  const yest=new Date(today);yest.setDate(yest.getDate()-1);
-  const ys=yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');
-  if(S.lastDate===ys)S.streakDays++;
-  else if(S.lastDate!==today)S.streakDays=1;
-  if(S.lastDate!==today){S.totalDays++;S.lastDate=today;}
+// Splits an absolute [startTs,endTs) millisecond range across local-midnight
+// boundaries so study time is always attributed to the calendar day it
+// actually happened on — important since a session can span days while the
+// app is closed, or a stopwatch run can cross midnight while open.
+function addTimeRange(startTs,endTs,subject,silent){
+  let cursor=startTs;
+  while(cursor<endTs){
+    const d=new Date(cursor);
+    const dayEnd=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1,0,0,0,0).getTime();
+    const segEnd=Math.min(endTs,dayEnd);
+    const sec=Math.round((segEnd-cursor)/1000);
+    const dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(sec>0)addTime(sec,subject,dateStr,silent);
+    cursor=segEnd;
+  }
 }
 
-function onLevelUp(lv){
-  BACKGROUNDS.forEach(bg=>{if(bg.level===lv&&!S.unlockedBgs.includes(bg.id)){S.unlockedBgs.push(bg.id);setTimeout(()=>notif('🎨 背景解放！',`Lv.${lv} 「${bg.name}」`),1500);}});
-  TITLES.forEach(t=>{if(t.level===lv&&!S.unlockedTitles.includes(t.id)){S.unlockedTitles.push(t.id);setTimeout(()=>notif('🏆 称号獲得！',`「${t.icon}${t.name}」`),2200);}});
+function updateStreak(dateStr){
+  const[y,m,d]=dateStr.split('-').map(Number);
+  const yest=new Date(y,m-1,d-1);
+  const ys=yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');
+  if(S.lastDate===ys)S.streakDays++;
+  else if(S.lastDate!==dateStr)S.streakDays=1;
+  if(S.lastDate!==dateStr){S.totalDays++;S.lastDate=dateStr;}
+}
+
+function onLevelUp(lv,silent){
+  BACKGROUNDS.forEach(bg=>{if(bg.level===lv&&!S.unlockedBgs.includes(bg.id)){S.unlockedBgs.push(bg.id);if(!silent)setTimeout(()=>notif('🎨 背景解放！',`Lv.${lv} 「${bg.name}」`),1500);}});
+  TITLES.forEach(t=>{if(t.level===lv&&!S.unlockedTitles.includes(t.id)){S.unlockedTitles.push(t.id);if(!silent)setTimeout(()=>notif('🏆 称号獲得！',`「${t.icon}${t.name}」`),2200);}});
 }
 
 // ============================================================
@@ -756,58 +819,63 @@ function startIv(){
 
 function tick(){
   if(S.paused||!S.active||!S.wallStart)return;
-  const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
-  const total=S.accumSec+elapsed;
   if(S.mode==='stopwatch'){
+    const total=S.accumSec+Math.floor((Date.now()-S.wallStart)/1000);
     updateTimerDisp(total);
     setRing(-1,-1);
     document.getElementById('timer-phase').textContent='計測中';
   }else{
-    pomoTick(total);
+    processPomo(false);
   }
 }
 
-function pomoTick(total){
-  const phaseElapsed=total-S.pomoPhaseStart;
-  if(S.pomoPhase==='work'){
-    const remain=S.pomoWorkSec-phaseElapsed;
-    if(remain<=0){
-      // work done
-      const elapsed2=Math.floor((Date.now()-S.wallStart)/1000);
-      addTime(S.pomoWorkSec,S.subject);
-      S.accumSec+=S.pomoWorkSec;
-      S.wallStart=Date.now();
-      S.pomoPhase='rest';S.pomoRestSec=5*60;
-      S.pomoPhaseStart=S.accumSec;
-      playBeep();
-      notif('⏸️ 休憩タイム！','5分間休憩しましょう');
-      document.getElementById('extend-btn').style.display='flex';
-      updatePomoLabel();
-      setRing(5*60,5*60);
-    }else{
-      updateTimerDisp(remain);setRing(remain,S.pomoWorkSec);
-      document.getElementById('timer-phase').textContent='集中中';
+// Advances the pomodoro state machine using absolute wall-clock time, so it
+// self-corrects no matter how long the tab/browser was closed: it walks
+// forward through every 25分/5分 boundary that has actually elapsed (only
+// crediting the 集中 portions as study time, never the 休憩), then renders
+// whichever phase is live right now. silent=true suppresses sound/toast
+// (used for the catch-up pass right after page load).
+function processPomo(silent){
+  if(!S.active||S.paused||!S.wallStart||S.mode!=='pomodoro')return;
+  let cursorTs=S.wallStart, cursorTotal=S.accumSec, transitions=0;
+  const now=Date.now();
+  let guard=0;
+  while(guard++<200000){
+    const curDur=S.pomoPhase==='work'?S.pomoWorkSec:S.pomoRestSec;
+    const phaseElapsedAtCursor=cursorTotal-S.pomoPhaseStart;
+    const remainAtCursor=curDur-phaseElapsedAtCursor;
+    const boundaryTs=cursorTs+remainAtCursor*1000;
+    if(boundaryTs>now){
+      // still inside this phase right now
+      const total=cursorTotal+Math.floor((now-cursorTs)/1000);
+      const remain=Math.max(0,curDur-(total-S.pomoPhaseStart));
+      updateTimerDisp(remain);setRing(remain,curDur);
+      document.getElementById('timer-phase').textContent=S.pomoPhase==='work'?'集中中':'休憩中';
+      document.getElementById('ring-fill').style.stroke=S.pomoPhase==='rest'?'var(--accent2)':'url(#ringGrad)';
+      break;
     }
-  }else{
-    const remain=S.pomoRestSec-phaseElapsed;
-    if(remain<=0){
-      // rest done
-      S.accumSec+=S.pomoRestSec;
-      S.wallStart=Date.now();
-      S.pomoPhase='work';S.pomoSet++;
-      S.pomoWorkSec=25*60;S.pomoRestSec=5*60;
-      S.pomoPhaseStart=S.accumSec;
+    // this phase finished at boundaryTs (possibly long ago) — credit it then transition
+    if(S.pomoPhase==='work')addTimeRange(cursorTs,boundaryTs,S.subject,silent);
+    cursorTotal+=remainAtCursor;cursorTs=boundaryTs;
+    S.accumSec=cursorTotal;
+    if(S.pomoPhase==='work'){S.pomoPhase='rest';S.pomoRestSec=5*60;}
+    else{S.pomoPhase='work';S.pomoSet++;S.pomoWorkSec=25*60;S.pomoRestSec=5*60;}
+    S.pomoPhaseStart=S.accumSec;
+    transitions++;
+  }
+  S.wallStart=cursorTs;
+  document.getElementById('extend-btn').style.display=S.pomoPhase==='rest'?'flex':'none';
+  updatePomoLabel();
+  if(transitions>0){
+    if(!silent){
       playBeep();
-      notif('✅ 集中タイム！',`Set ${S.pomoSet} 開始`);
-      document.getElementById('extend-btn').style.display='none';
-      updatePomoLabel();
-      setRing(25*60,25*60);
+      if(S.pomoPhase==='rest')notif('⏸️ 休憩タイム！','5分間休憩しましょう');
+      else notif('✅ 集中タイム！',`Set ${S.pomoSet} 開始`);
     }else{
-      updateTimerDisp(remain);setRing(remain,S.pomoRestSec);
-      document.getElementById('timer-phase').textContent='休憩中';
-      document.getElementById('ring-fill').style.stroke='var(--accent2)';
+      notif('⏳ おかえりなさい',`離れている間に${transitions}回フェーズが切り替わりました`);
     }
   }
+  save();
 }
 
 function updateTimerDisp(sec){
@@ -833,7 +901,7 @@ function updatePomoLabel(){
 // SESSION CONTROL
 // ============================================================
 function startMode(mode){
-  S.mode=mode;S.active=true;S.paused=true;S.accumSec=0;S.wallStart=null;
+  S.mode=mode;S.active=true;S.paused=true;S.hasStarted=false;S.accumSec=0;S.wallStart=null;S.curConSec=0;
   if(mode==='pomodoro'){
     S.pomoPhase='work';S.pomoSet=1;S.pomoWorkSec=25*60;S.pomoRestSec=5*60;S.pomoPhaseStart=0;
     document.getElementById('pomo-info').style.display='block';
@@ -848,41 +916,54 @@ function startMode(mode){
     document.getElementById('timer-phase').textContent='準備OK';
   }
   updateSubjDisp();applyBg();
+  document.getElementById('pp-btn').textContent='▶';
   showScreen('study-screen');
   openSubjectModal();
   startIv();save();
 }
 
 function togglePP(){
-  if(!S.active)return;
+  if(!S.active||!S.hasStarted)return;
   if(S.paused){
     S.wallStart=Date.now();S.paused=false;
     document.getElementById('pp-btn').textContent='⏸';
   }else{
-    commitSeg();S.paused=true;
+    flushRun(false);S.paused=true;
     document.getElementById('pp-btn').textContent='▶';
   }
   save();
 }
 
-function commitSeg(){
+// Commits whatever time has elapsed since S.wallStart: for the stopwatch, or
+// for a pomodoro 集中 phase, that elapsed time counts as study time (split
+// across midnight if needed); a pomodoro 休憩 phase never counts. When
+// keepRunning is true wallStart is reset to "now" so the run continues
+// uninterrupted (used for a mid-session subject change); otherwise the run
+// is left paused (wallStart=null).
+function flushRun(keepRunning){
   if(!S.wallStart)return;
-  const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
-  if(S.mode==='stopwatch'){addTime(elapsed,S.subject);}
-  S.accumSec+=elapsed;S.wallStart=null;
+  const now=Date.now();
+  const elapsed=Math.floor((now-S.wallStart)/1000);
+  const countable=S.mode==='stopwatch'||(S.mode==='pomodoro'&&S.pomoPhase==='work');
+  if(countable&&elapsed>0)addTimeRange(S.wallStart,S.wallStart+elapsed*1000,S.subject,false);
+  S.accumSec+=elapsed;
+  S.wallStart=keepRunning?now:null;
 }
 
 function stopSession(){
   if(!S.active)return;
-  if(!S.paused&&S.wallStart)commitSeg();
-  S.active=false;S.paused=true;
+  if(!S.paused&&S.wallStart)flushRun(false);
+  S.active=false;S.paused=true;S.hasStarted=false;
   if(timerIv)clearInterval(timerIv);timerIv=null;
   showHome();save();
 }
 
 function extendRest(){
+  if(S.pomoPhase!=='rest')return;
   S.pomoRestSec+=5*60;
   notif('⏱ 5分延長','休憩をもう少し続けましょう');
+  if(!S.paused&&S.wallStart)processPomo(true); // refresh the on-screen countdown immediately
+  else save();
 }
 
 function backFromStudy(){
@@ -900,12 +981,34 @@ function openSubjectModal(){
     d.className='subject-choice'+(S.subject===s.id?' selected':'');
     d.style.color=s.color;
     d.innerHTML=`<div class="subject-choice-dot" style="background:${s.color}"></div><span>${s.name}</span>`;
-    d.onclick=()=>{S.subject=s.id;updateSubjDisp();closeSubjModal();save();};
+    d.onclick=()=>chooseSubject(s.id);
     g.appendChild(d);
   });
   document.getElementById('subj-modal').classList.add('active');
 }
-function closeSubjModal(){document.getElementById('subj-modal').classList.remove('active');}
+function closeSubjModal(){
+  // closing without picking anything before the run has ever started just
+  // keeps it paused at the selector; nothing else to do
+  document.getElementById('subj-modal').classList.remove('active');
+}
+// Called whenever a subject is picked in the modal — both the very first
+// pick (which also starts the timer) and any later change mid-session
+// (which must bank the time already spent on the old subject first, without
+// interrupting the running timer/pomodoro countdown).
+function chooseSubject(id){
+  if(!S.hasStarted){
+    S.subject=id;
+    S.hasStarted=true;S.paused=false;S.wallStart=Date.now();
+    document.getElementById('pp-btn').textContent='⏸';
+    updateSubjDisp();closeSubjModal();save();
+    return;
+  }
+  if(id!==S.subject){
+    if(S.active&&!S.paused&&S.wallStart)flushRun(true);
+    S.subject=id;
+  }
+  updateSubjDisp();closeSubjModal();save();
+}
 function updateSubjDisp(){
   const s=subj(S.subject);
   document.getElementById('s-dot').style.background=s.color;
@@ -1089,7 +1192,7 @@ function renderBgGrid(){
     const card=document.createElement('div');
     card.className='bg-card'+(unlocked?'':' locked')+(selected?' selected':'');
     card.innerHTML=`
-      <div class="bg-preview" style="background:${bg.css}">
+      <div class="bg-preview ${unlocked?bg.cls:''}" style="background:${bg.css}">
         <div class="bg-name">${bg.name}</div>
       </div>
       <div class="bg-lv">Lv.${bg.level}</div>
@@ -1117,9 +1220,14 @@ function renderTitleList(){
 // BACKGROUND
 // ============================================================
 function applyBg(){
+  document.body.classList.remove('bg-anim-shimmer','bg-anim-rotate','bg-anim-legend');
   const bg=S.selBg?BACKGROUNDS.find(b=>b.id===S.selBg):null;
-  if(bg)document.body.style.background=bg.css;
-  else document.body.style.background='var(--bg)';
+  if(bg){
+    document.body.style.background=bg.css;
+    if(bg.cls)document.body.classList.add(bg.cls);
+  }else{
+    document.body.style.background='var(--bg)';
+  }
 }
 
 // ============================================================
@@ -1129,14 +1237,16 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden&&!S.paused&&S.active){tick();}
 });
 
-window.addEventListener('beforeunload',()=>{
-  if(!S.paused&&S.active&&S.wallStart){
-    const elapsed=Math.floor((Date.now()-S.wallStart)/1000);
-    if(S.mode==='stopwatch')addTime(elapsed,S.subject);
-    S.accumSec+=elapsed;S.wallStart=Date.now();
-  }
-  save();
-});
+// Nothing needs to be computed on unload: wallStart/accumSec already encode
+// the absolute start time, so the timer keeps being "correct" purely by
+// comparing against Date.now() again next time the page loads — even if the
+// browser is killed outright and this handler never runs. This is just a
+// belt-and-suspenders flush of any state (subject, pomodoro set count, etc)
+// that changed since the last explicit save().
+function persistNow(){save();}
+window.addEventListener('beforeunload',persistNow);
+window.addEventListener('pagehide',persistNow);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)persistNow();});
 
 // ============================================================
 // INIT
@@ -1145,15 +1255,40 @@ window.addEventListener('load',()=>{
   load();
   applyBg();
   if(S.active){
-    S.paused=true;
-    document.getElementById('pp-btn').textContent='▶';
     updateSubjDisp();
+    document.getElementById('s-mode-label').textContent=S.mode==='pomodoro'?'POMODORO':'STOPWATCH';
     if(S.mode==='pomodoro'){
       document.getElementById('pomo-info').style.display='block';
       updatePomoLabel();
+    }else{
+      document.getElementById('pomo-info').style.display='none';
+    }
+    document.getElementById('pp-btn').textContent=S.paused?'▶':'⏸';
+    showScreen('study-screen');
+    if(!S.hasStarted){
+      updateTimerDisp(S.mode==='pomodoro'?S.pomoWorkSec:0);
+      setRing(S.mode==='pomodoro'?S.pomoWorkSec:-1,S.mode==='pomodoro'?S.pomoWorkSec:-1);
+      document.getElementById('timer-phase').textContent='準備OK';
+      openSubjectModal();
+    }else if(S.mode==='pomodoro'){
+      if(!S.paused&&S.wallStart){
+        // catch up on every 集中/休憩 boundary crossed while the app was closed
+        processPomo(true);
+      }else{
+        const curDur=S.pomoPhase==='work'?S.pomoWorkSec:S.pomoRestSec;
+        const remain=Math.max(0,curDur-(S.accumSec-S.pomoPhaseStart));
+        updateTimerDisp(remain);setRing(remain,curDur);
+        document.getElementById('timer-phase').textContent=(S.pomoPhase==='work'?'集中中':'休憩中')+'（一時停止）';
+        document.getElementById('ring-fill').style.stroke=S.pomoPhase==='rest'?'var(--accent2)':'url(#ringGrad)';
+        document.getElementById('extend-btn').style.display=S.pomoPhase==='rest'?'flex':'none';
+      }
+    }else if(!S.paused&&S.wallStart){
+      tick();
+    }else{
+      updateTimerDisp(S.accumSec);setRing(-1,-1);
+      document.getElementById('timer-phase').textContent='一時停止中';
     }
     startIv();
-    showScreen('study-screen');
   }else{
     showHome();
   }
