@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ヒトデクイズ</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  /* ---- Start overlay ---- */
+  .start-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: radial-gradient(circle at 50% 40%, #133b3a 0%, #06110f 70%);
+    z-index: 30;
+    text-align: center;
+    padding: 24px;
+    transition: opacity 0.4s ease;
+  }
+  .start-overlay h1 {
+    color: #eafff6;
+    font-size: clamp(22px, 6vw, 34px);
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+  .start-overlay p {
+    color: #9fd8c9;
+    margin: 0;
+    font-size: clamp(13px, 3.6vw, 16px);
+  }
+  .start-btn {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 44px;
+    font-size: clamp(16px, 4.4vw, 20px);
+    font-weight: 700;
+    color: #04211b;
+    background: linear-gradient(135deg, #6df5c8, #35c99c);
+    box-shadow: 0 8px 24px rgba(53, 201, 156, 0.45);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .start-btn:active { transform: scale(0.97); }
+  .starfish-icon { font-size: clamp(48px, 14vw, 84px); }
+
+  /* ---- Quiz overlay ---- */
+  .quiz-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 16px calc(22px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.72) 55%, rgba(0,0,0,0) 100%);
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .quiz-overlay.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .quiz-question {
+    color: #ffffff;
+    font-size: clamp(16px, 4.6vw, 24px);
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    max-width: 620px;
+  }
+
+  .quiz-choices {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .choice-btn {
+    flex: 1;
+    appearance: none;
+    border: 3px solid rgba(255,255,255,0.85);
+    border-radius: 20px;
+    padding: 18px 10px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+  .choice-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.22); }
+  .choice-btn .mark {
+    font-size: clamp(30px, 9vw, 46px);
+    line-height: 1;
+  }
+  .choice-btn .label {
+    font-size: clamp(13px, 3.6vw, 16px);
+    color: #fff;
+    font-weight: 600;
+  }
+  .choice-a .mark { color: #6df5c8; }
+  .choice-b .mark { color: #ff8a8a; }
+
+  .choice-btn.correct-flash {
+    border-color: #6df5c8;
+    background: rgba(109, 245, 200, 0.28);
+  }
+  .choice-btn.wrong-flash {
+    border-color: #ff8a8a;
+    background: rgba(255, 138, 138, 0.28);
+  }
+  .choice-btn.dim { opacity: 0.35; pointer-events: none; }
+
+  /* ---- Result banner ---- */
+  .result-banner {
+    position: absolute;
+    top: calc(18px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translate(-50%, -16px);
+    z-index: 25;
+    padding: 12px 28px;
+    border-radius: 999px;
+    font-size: clamp(16px, 5vw, 22px);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #04211b;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+    white-space: nowrap;
+  }
+  .result-banner.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  .result-banner.ok { background: linear-gradient(135deg, #6df5c8, #35c99c); }
+  .result-banner.ng { background: linear-gradient(135deg, #ffb1b1, #ff6b6b); }
+
+  /* ---- Replay button ---- */
+  .replay-btn {
+    position: absolute;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    z-index: 25;
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 34px;
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.14);
+    border: 2px solid rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    touch-action: manipulation;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .replay-btn.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .replay-btn:active { transform: translateX(-50%) scale(0.96); }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <video id="player" playsinline webkit-playsinline></video>
+
+    <div class="result-banner" id="resultBanner"></div>
+
+    <div class="quiz-overlay" id="quizOverlay">
+      <div class="quiz-question">ヒトデの足は5本である</div>
+      <div class="quiz-choices">
+        <button class="choice-btn choice-a" id="choiceA" data-choice="A">
+          <span class="mark">○</span>
+          <span class="label">A</span>
+        </button>
+        <button class="choice-btn choice-b" id="choiceB" data-choice="B">
+          <span class="mark">✕</span>
+          <span class="label">B</span>
+        </button>
+      </div>
+    </div>
+
+    <button class="replay-btn" id="replayBtn">もう一度挑戦する</button>
+
+    <div class="start-overlay" id="startOverlay">
+      <div class="starfish-icon">⭐</div>
+      <h1>ヒトデクイズ</h1>
+      <p>動画を見ながら、クイズに答えよう</p>
+      <button class="start-btn" id="startBtn">タップしてスタート</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var VIDEO = {
+    quiz: "assets/videos/quiz.mp4",
+    correct: "assets/videos/correct.mp4",
+    incorrect: "assets/videos/incorrect.mp4"
+  };
+  var CORRECT_CHOICE = "A";
+  // Show the quiz choices this many seconds after the quiz video starts.
+  var QUIZ_APPEAR_DELAY = 0;
+
+  var player = document.getElementById("player");
+  var startOverlay = document.getElementById("startOverlay");
+  var startBtn = document.getElementById("startBtn");
+  var quizOverlay = document.getElementById("quizOverlay");
+  var choiceA = document.getElementById("choiceA");
+  var choiceB = document.getElementById("choiceB");
+  var resultBanner = document.getElementById("resultBanner");
+  var replayBtn = document.getElementById("replayBtn");
+
+  var answered = false;
+  var quizTimer = null;
+
+  function resetUI() {
+    answered = false;
+    quizOverlay.classList.remove("visible");
+    choiceA.classList.remove("correct-flash", "wrong-flash", "dim");
+    choiceB.classList.remove("correct-flash", "wrong-flash", "dim");
+    resultBanner.classList.remove("show", "ok", "ng");
+    resultBanner.textContent = "";
+    replayBtn.classList.remove("show");
+    if (quizTimer) { clearTimeout(quizTimer); quizTimer = null; }
+  }
+
+  function playQuiz() {
+    resetUI();
+    player.src = VIDEO.quiz;
+    player.loop = true;
+    player.muted = false;
+    player.load();
+    var playPromise = player.play();
+    if (playPromise && playPromise.catch) { playPromise.catch(function () {}); }
+
+    quizTimer = setTimeout(function () {
+      quizOverlay.classList.add("visible");
+    }, QUIZ_APPEAR_DELAY * 1000);
+  }
+
+  function onChoice(choice) {
+    if (answered) { return; }
+    answered = true;
+    player.loop = false;
+
+    var isCorrect = choice === CORRECT_CHOICE;
+    var chosenBtn = choice === "A" ? choiceA : choiceB;
+    var otherBtn = choice === "A" ? choiceB : choiceA;
+    chosenBtn.classList.add(isCorrect ? "correct-flash" : "wrong-flash");
+    otherBtn.classList.add("dim");
+
+    setTimeout(function () {
+      quizOverlay.classList.remove("visible");
+
+      resultBanner.textContent = isCorrect ? "正解！" : "不正解…";
+      resultBanner.classList.add("show", isCorrect ? "ok" : "ng");
+
+      player.src = isCorrect ? VIDEO.correct : VIDEO.incorrect;
+      player.load();
+      var p = player.play();
+      if (p && p.catch) { p.catch(function () {}); }
+    }, 450);
+  }
+
+  player.addEventListener("ended", function () {
+    if (answered) {
+      replayBtn.classList.add("show");
+    }
+  });
+
+  choiceA.addEventListener("click", function () { onChoice("A"); });
+  choiceB.addEventListener("click", function () { onChoice("B"); });
+
+  replayBtn.addEventListener("click", function () {
+    playQuiz();
+  });
+
+  startBtn.addEventListener("click", function () {
+    startOverlay.style.opacity = "0";
+    startOverlay.style.pointerEvents = "none";
+    setTimeout(function () { startOverlay.style.display = "none"; }, 400);
+    playQuiz();
+  });
+})();
+</script>
+</body>
+</html>
