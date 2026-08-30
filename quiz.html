@@ -30,11 +30,20 @@
     justify-content: center;
   }
 
-  video {
+  .layer {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
     background: #000;
+    opacity: 0;
+    z-index: 1;
+    transition: opacity 0.22s ease;
+  }
+  .layer.layer-active {
+    opacity: 1;
+    z-index: 2;
   }
 
   /* ---- Start overlay ---- */
@@ -218,7 +227,9 @@
 </head>
 <body>
   <div class="stage" id="stage">
-    <video id="player" playsinline webkit-playsinline></video>
+    <video class="layer" id="videoQuiz" src="assets/videos/quiz.mp4" preload="auto" playsinline webkit-playsinline></video>
+    <video class="layer" id="videoCorrect" src="assets/videos/correct.mp4" preload="auto" playsinline webkit-playsinline></video>
+    <video class="layer" id="videoIncorrect" src="assets/videos/incorrect.mp4" preload="auto" playsinline webkit-playsinline></video>
 
     <div class="result-banner" id="resultBanner"></div>
 
@@ -250,16 +261,15 @@
 (function () {
   "use strict";
 
-  var VIDEO = {
-    quiz: "assets/videos/quiz.mp4",
-    correct: "assets/videos/correct.mp4",
-    incorrect: "assets/videos/incorrect.mp4"
-  };
   var CORRECT_CHOICE = "A";
   // Show the quiz choices this many seconds after the quiz video starts.
   var QUIZ_APPEAR_DELAY = 0;
+  // Brief pause so the tap's color feedback registers before the cut.
+  var CUT_DELAY_MS = 120;
 
-  var player = document.getElementById("player");
+  var videoQuiz = document.getElementById("videoQuiz");
+  var videoCorrect = document.getElementById("videoCorrect");
+  var videoIncorrect = document.getElementById("videoIncorrect");
   var startOverlay = document.getElementById("startOverlay");
   var startBtn = document.getElementById("startBtn");
   var quizOverlay = document.getElementById("quizOverlay");
@@ -270,6 +280,17 @@
 
   var answered = false;
   var quizTimer = null;
+
+  function showLayer(video) {
+    [videoQuiz, videoCorrect, videoIncorrect].forEach(function (v) {
+      v.classList.toggle("layer-active", v === video);
+    });
+  }
+
+  function safePlay(video) {
+    var p = video.play();
+    if (p && p.catch) { p.catch(function () {}); }
+  }
 
   function resetUI() {
     answered = false;
@@ -284,12 +305,16 @@
 
   function playQuiz() {
     resetUI();
-    player.src = VIDEO.quiz;
-    player.loop = true;
-    player.muted = false;
-    player.load();
-    var playPromise = player.play();
-    if (playPromise && playPromise.catch) { playPromise.catch(function () {}); }
+
+    videoCorrect.pause();
+    videoCorrect.currentTime = 0;
+    videoIncorrect.pause();
+    videoIncorrect.currentTime = 0;
+
+    showLayer(videoQuiz);
+    videoQuiz.loop = true;
+    videoQuiz.currentTime = 0;
+    safePlay(videoQuiz);
 
     quizTimer = setTimeout(function () {
       quizOverlay.classList.add("visible");
@@ -299,31 +324,33 @@
   function onChoice(choice) {
     if (answered) { return; }
     answered = true;
-    player.loop = false;
 
     var isCorrect = choice === CORRECT_CHOICE;
     var chosenBtn = choice === "A" ? choiceA : choiceB;
     var otherBtn = choice === "A" ? choiceB : choiceA;
     chosenBtn.classList.add(isCorrect ? "correct-flash" : "wrong-flash");
     otherBtn.classList.add("dim");
+    quizOverlay.classList.remove("visible");
+
+    var target = isCorrect ? videoCorrect : videoIncorrect;
 
     setTimeout(function () {
-      quizOverlay.classList.remove("visible");
-
       resultBanner.textContent = isCorrect ? "正解！" : "不正解…";
       resultBanner.classList.add("show", isCorrect ? "ok" : "ng");
 
-      player.src = isCorrect ? VIDEO.correct : VIDEO.incorrect;
-      player.load();
-      var p = player.play();
-      if (p && p.catch) { p.catch(function () {}); }
-    }, 450);
+      videoQuiz.loop = false;
+      showLayer(target);
+      safePlay(target);
+      videoQuiz.pause();
+    }, CUT_DELAY_MS);
   }
 
-  player.addEventListener("ended", function () {
-    if (answered) {
-      replayBtn.classList.add("show");
-    }
+  [videoCorrect, videoIncorrect].forEach(function (video) {
+    video.addEventListener("ended", function () {
+      if (answered) {
+        replayBtn.classList.add("show");
+      }
+    });
   });
 
   choiceA.addEventListener("click", function () { onChoice("A"); });
