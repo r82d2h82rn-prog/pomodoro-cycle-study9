@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>分岐ムービー</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  /* ---- Loading overlay ---- */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: radial-gradient(circle at 50% 40%, #1a1330 0%, #06060f 70%);
+    z-index: 40;
+    text-align: center;
+    padding: 24px;
+    transition: opacity 0.4s ease;
+  }
+  .loading-overlay h1 {
+    color: #f2eaff;
+    font-size: clamp(18px, 5vw, 26px);
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+  .loading-bar-track {
+    width: min(280px, 70vw);
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    overflow: hidden;
+  }
+  .loading-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #b98bff, #7a5cff);
+    transition: width 0.2s ease;
+  }
+  .loading-label {
+    color: #c9b8ff;
+    font-size: clamp(12px, 3.4vw, 15px);
+  }
+
+  /* ---- Start overlay ---- */
+  .start-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: radial-gradient(circle at 50% 40%, #1a1330 0%, #06060f 70%);
+    z-index: 30;
+    text-align: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .start-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .start-overlay h1 {
+    color: #f2eaff;
+    font-size: clamp(22px, 6vw, 34px);
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+  .start-overlay p {
+    color: #c9b8ff;
+    margin: 0;
+    font-size: clamp(13px, 3.6vw, 16px);
+  }
+  .start-btn {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 44px;
+    font-size: clamp(16px, 4.4vw, 20px);
+    font-weight: 700;
+    color: #1a0f33;
+    background: linear-gradient(135deg, #d6b8ff, #8a6bff);
+    box-shadow: 0 8px 24px rgba(138, 107, 255, 0.45);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .start-btn:active { transform: scale(0.97); }
+  .game-icon { font-size: clamp(48px, 14vw, 84px); }
+
+  /* ---- Choice overlay ---- */
+  .choice-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 16px calc(22px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.72) 55%, rgba(0,0,0,0) 100%);
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .choice-overlay.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .choices {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .choice-btn {
+    flex: 1;
+    appearance: none;
+    border: 3px solid rgba(255,255,255,0.85);
+    border-radius: 20px;
+    padding: 18px 10px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  }
+  .choice-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.22); }
+  .choice-btn .label {
+    font-size: clamp(18px, 5vw, 24px);
+    color: #fff;
+    font-weight: 700;
+  }
+  .choice-a .label { color: #b3ffd9; }
+  .choice-b .label { color: #ff8a8a; }
+  .choice-btn.dim { opacity: 0.35; pointer-events: none; }
+
+  /* ---- End overlay (Game Over / Congratulations) ---- */
+  .end-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    z-index: 25;
+    text-align: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .end-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .end-overlay h2 {
+    margin: 0;
+    font-size: clamp(28px, 9vw, 48px);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-shadow: 0 4px 18px rgba(0,0,0,0.6);
+  }
+  .end-overlay.gameover h2 { color: #ff6b6b; }
+  .end-overlay.clear h2 { color: #6df5c8; }
+
+  .restart-btn {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 36px;
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.14);
+    border: 2px solid rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .restart-btn:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <video id="player" playsinline webkit-playsinline></video>
+
+    <div class="choice-overlay" id="choiceOverlay">
+      <div class="choices">
+        <button class="choice-btn choice-a" id="choiceA" data-choice="A">
+          <span class="label">A</span>
+        </button>
+        <button class="choice-btn choice-b" id="choiceB" data-choice="B">
+          <span class="label">B</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="end-overlay gameover" id="gameOverOverlay">
+      <h2>Game Over</h2>
+      <button class="restart-btn" id="restartBtnGameOver">最初に戻る</button>
+    </div>
+
+    <div class="end-overlay clear" id="clearOverlay">
+      <h2>Congratulations!</h2>
+      <button class="restart-btn" id="restartBtnClear">最初に戻る</button>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="game-icon">🎬</div>
+      <h1>読み込み中...</h1>
+      <div class="loading-bar-track">
+        <div class="loading-bar-fill" id="loadingBarFill"></div>
+      </div>
+      <div class="loading-label" id="loadingLabel">0 / 0</div>
+    </div>
+
+    <div class="start-overlay" id="startOverlay">
+      <div class="game-icon">🎬</div>
+      <h1>分岐ムービー</h1>
+      <p>選んだ道で結末が変わる</p>
+      <button class="start-btn" id="startBtn">タップしてスタート</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Video source paths. Place the actual files at these paths.
+  var VIDEO_SRC = {
+    pre1: "assets/videos/pre1.mp4",
+    pre2: "assets/videos/pre2.mp4",
+    pre3: "assets/videos/pre3.mp4",
+    pre4: "assets/videos/pre4.mp4",
+    bakuhatsu: "assets/videos/bakuhatsu.mp4"
+  };
+
+  // Branching table: for each node, which choice leads to which next node,
+  // and what happens when that node's video finishes.
+  // onEnd: "choice" -> show A/B overlay, "gameover" -> Game Over, "clear" -> Congratulations
+  var FLOW = {
+    pre1: { onEnd: "choice", A: "pre2", B: "bakuhatsu" },
+    pre2: { onEnd: "choice", A: "pre3", B: "bakuhatsu" },
+    pre3: { onEnd: "choice", A: "bakuhatsu", B: "pre4" },
+    pre4: { onEnd: "clear" },
+    bakuhatsu: { onEnd: "gameover" }
+  };
+
+  var START_NODE = "pre1";
+
+  var player = document.getElementById("player");
+  var loadingOverlay = document.getElementById("loadingOverlay");
+  var loadingBarFill = document.getElementById("loadingBarFill");
+  var loadingLabel = document.getElementById("loadingLabel");
+  var startOverlay = document.getElementById("startOverlay");
+  var startBtn = document.getElementById("startBtn");
+  var choiceOverlay = document.getElementById("choiceOverlay");
+  var choiceA = document.getElementById("choiceA");
+  var choiceB = document.getElementById("choiceB");
+  var gameOverOverlay = document.getElementById("gameOverOverlay");
+  var clearOverlay = document.getElementById("clearOverlay");
+  var restartBtnGameOver = document.getElementById("restartBtnGameOver");
+  var restartBtnClear = document.getElementById("restartBtnClear");
+
+  var blobUrls = {};
+  var currentNode = null;
+
+  // ---- Preload all videos as blobs so switching is instant ----
+  function preloadAll() {
+    var keys = Object.keys(VIDEO_SRC);
+    var total = keys.length;
+    var loaded = 0;
+
+    loadingLabel.textContent = loaded + " / " + total;
+
+    var tasks = keys.map(function (key) {
+      return fetch(VIDEO_SRC[key])
+        .then(function (res) {
+          if (!res.ok) { throw new Error("failed to load " + VIDEO_SRC[key]); }
+          return res.blob();
+        })
+        .then(function (blob) {
+          blobUrls[key] = URL.createObjectURL(blob);
+          loaded++;
+          var pct = Math.round((loaded / total) * 100);
+          loadingBarFill.style.width = pct + "%";
+          loadingLabel.textContent = loaded + " / " + total;
+        });
+    });
+
+    Promise.all(tasks)
+      .then(function () {
+        loadingOverlay.style.opacity = "0";
+        setTimeout(function () { loadingOverlay.style.display = "none"; }, 400);
+        startOverlay.classList.add("visible");
+      })
+      .catch(function (err) {
+        loadingLabel.textContent = "読み込みに失敗しました";
+        console.error(err);
+      });
+  }
+
+  function srcFor(node) {
+    return blobUrls[node] || VIDEO_SRC[node];
+  }
+
+  function hideAllEndOverlays() {
+    gameOverOverlay.classList.remove("show");
+    clearOverlay.classList.remove("show");
+  }
+
+  function resetChoiceUI() {
+    choiceOverlay.classList.remove("visible");
+    choiceA.classList.remove("dim");
+    choiceB.classList.remove("dim");
+  }
+
+  function playNode(node) {
+    currentNode = node;
+    resetChoiceUI();
+    hideAllEndOverlays();
+
+    player.loop = false;
+    player.src = srcFor(node);
+    player.load();
+    var p = player.play();
+    if (p && p.catch) { p.catch(function () {}); }
+  }
+
+  function onVideoEnded() {
+    var step = FLOW[currentNode];
+    if (!step) { return; }
+
+    if (step.onEnd === "choice") {
+      choiceOverlay.classList.add("visible");
+    } else if (step.onEnd === "gameover") {
+      gameOverOverlay.classList.add("show");
+    } else if (step.onEnd === "clear") {
+      clearOverlay.classList.add("show");
+    }
+  }
+
+  function onChoice(choice) {
+    var step = FLOW[currentNode];
+    if (!step || step.onEnd !== "choice") { return; }
+
+    var chosenBtn = choice === "A" ? choiceA : choiceB;
+    var otherBtn = choice === "A" ? choiceB : choiceA;
+    chosenBtn.classList.add("dim");
+    otherBtn.classList.add("dim");
+
+    var nextNode = step[choice];
+    setTimeout(function () {
+      playNode(nextNode);
+    }, 200);
+  }
+
+  player.addEventListener("ended", onVideoEnded);
+
+  choiceA.addEventListener("click", function () { onChoice("A"); });
+  choiceB.addEventListener("click", function () { onChoice("B"); });
+
+  restartBtnGameOver.addEventListener("click", function () { playNode(START_NODE); });
+  restartBtnClear.addEventListener("click", function () { playNode(START_NODE); });
+
+  startBtn.addEventListener("click", function () {
+    startOverlay.classList.remove("visible");
+    playNode(START_NODE);
+  });
+
+  preloadAll();
+})();
+</script>
+</body>
+</html>
